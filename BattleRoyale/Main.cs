@@ -1,0 +1,126 @@
+using BepInEx;
+using BepInEx.Configuration;
+using BepInEx.Logging;
+using BattleRoyale.Patches;
+using BattleRoyale.UI;
+using HarmonyLib;
+using UnityEngine;
+
+namespace BattleRoyale
+{
+    [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
+    public class Main : BaseUnityPlugin
+    {
+        public const string PluginGuid = "com.igentuman.battleroyale";
+        public const string PluginName = "Battle Royale";
+        public const string PluginVersion = "1.0.0";
+
+        private static Main _instance;
+        public static Main Instance => _instance;
+
+        internal static ManualLogSource Log;
+
+        public static bool IsServer => ZNet.instance != null && ZNet.instance.IsServer();
+
+        // Exposed config values for patches
+        public float StructureDamageMultiplier => _cfgStructureDamageMultiplier.Value;
+        public float StaminaCostMultiplier => _cfgStaminaCostMultiplier.Value;
+        public int StartSkillLevel => _cfgStartSkillLevel.Value;
+
+        private ConfigEntry<float> _cfgZonePhaseWaitDuration;
+        private ConfigEntry<float> _cfgZonePhaseShrinkDuration;
+        private ConfigEntry<float> _cfgZoneDamagePerSecond;
+        private ConfigEntry<int> _cfgLootSpawnCount;
+        private ConfigEntry<float> _cfgStructureDamageMultiplier;
+        private ConfigEntry<float> _cfgStaminaCostMultiplier;
+        private ConfigEntry<string> _cfgApiBaseUrl;
+        private ConfigEntry<bool> _cfgApiEnabled;
+        private ConfigEntry<int> _cfgStartSkillLevel;
+
+        private Harmony _harmony;
+        private bool _initialized;
+        private bool _clientInitialized;
+
+        private void Awake()
+        {
+            _instance = this;
+            Log = Logger;
+
+            InitConfig();
+            ChatCommands.Register();
+            _harmony = new Harmony(PluginGuid);
+            _harmony.PatchAll();
+
+            Logger.LogInfo($"[{PluginName}] v{PluginVersion} loaded");
+        }
+
+        private void InitConfig()
+        {
+            _cfgZonePhaseWaitDuration     = Config.Bind("Zone",      "PhaseWaitDuration",       240f,                   "Seconds to show next zone before it starts shrinking");
+            _cfgZonePhaseShrinkDuration   = Config.Bind("Zone",      "PhaseShrinkDuration",      120f,                   "Seconds to complete each zone shrink");
+            _cfgZoneDamagePerSecond       = Config.Bind("Zone",      "DamagePerSecond",           1f,                   "Base damage per second outside zone (doubles each phase)");
+            _cfgLootSpawnCount            = Config.Bind("Loot",      "SpawnCount",               50,                    "Number of loot items to spawn per match");
+            _cfgStructureDamageMultiplier = Config.Bind("Structure", "DamageMultiplier",          2f,                   "Structure damage multiplier during BR match");
+            _cfgStaminaCostMultiplier     = Config.Bind("Structure", "StaminaCostMultiplier",     2f,                   "Build stamina cost multiplier during BR match");
+            _cfgApiBaseUrl                = Config.Bind("API",       "BaseUrl",  "http://localhost:3000",               "Backend API base URL");
+            _cfgApiEnabled                = Config.Bind("API",       "Enabled",                false,                   "Enable API event forwarding (requires backend project)");
+            _cfgStartSkillLevel           = Config.Bind("Match",     "StartSkillLevel",           20,                   "Skill level set for all players when match starts (0 = disabled)");
+        }
+
+        public void OnServerReady()
+        {
+            if (_initialized) return;
+            _initialized = true;
+
+            var zoneConfig = new ZoneConfig
+            {
+                PhaseRadii          = new float[] { 5500f, 4000f, 2000f, 1000f, 200f, 1f },
+                PhaseWaitDuration   = _cfgZonePhaseWaitDuration.Value,
+                PhaseShrinkDuration = _cfgZonePhaseShrinkDuration.Value,
+                BaseDamagePerSecond = _cfgZoneDamagePerSecond.Value,
+                InitialCenter       = Vector3.zero
+            };
+
+            ClientSync.Init(Logger);
+            MatchManager.Init(Logger);
+            ZoneManager.Init(zoneConfig, Logger);
+            LootManager.Init(_cfgLootSpawnCount.Value, Logger);
+            ApiClient.Init(_cfgApiBaseUrl.Value, _cfgApiEnabled.Value, Logger);
+            ClientSync.RegisterServerForwards();
+
+            Logger.LogInfo($"[BattleRoyale] Zone config — phases: [{string.Join(",", zoneConfig.PhaseRadii)}]m, wait: {zoneConfig.PhaseWaitDuration}s, shrink: {zoneConfig.PhaseShrinkDuration}s, baseDmg: {zoneConfig.BaseDamagePerSecond}/s");
+            Logger.LogInfo($"[BattleRoyale] Match config — loot: {_cfgLootSpawnCount.Value} items, structDmg: {_cfgStructureDamageMultiplier.Value}x, staminaCost: {_cfgStaminaCostMultiplier.Value}x, API: {(_cfgApiEnabled.Value ? _cfgApiBaseUrl.Value : "disabled")}");
+            Logger.LogInfo("[BattleRoyale] All systems initialized");
+        }
+
+        public void OnClientReady()
+        {
+            if (_clientInitialized) return;
+            _clientInitialized = true;
+
+            ClientSync.Init(Logger);
+
+            var hudGo = new GameObject("BR_HUD");
+            DontDestroyOnLoad(hudGo);
+            hudGo.AddComponent<BRHud>();
+
+            var zoneGo = new GameObject("BR_Zone");
+            DontDestroyOnLoad(zoneGo);
+            zoneGo.AddComponent<ZoneRenderer>();
+
+            Logger.LogInfo("[BattleRoyale] Client HUD initialized");
+        }
+
+        private void Update()
+        {
+            if (MatchManager.Instance?.State?.Phase != MatchPhase.Active) return;
+            ZoneManager.Instance?.Tick(Time.deltaTime);
+            MatchManager.Instance.Tick(Time.deltaTime);
+        }
+
+        private void OnDestroy()
+        {
+            _harmony?.UnpatchSelf();
+        }
+    }
+}

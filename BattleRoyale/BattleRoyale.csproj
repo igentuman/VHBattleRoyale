@@ -2,6 +2,15 @@
 
     <PropertyGroup>
         <TargetFramework>netstandard2.1</TargetFramework>
+        <AssemblyName>BattleRoyale</AssemblyName>
+        <RootNamespace>BattleRoyale</RootNamespace>
+        <PackageId>BattleRoyale</PackageId>
+        <Authors>igentuman</Authors>
+        <Company>igentuman</Company>
+        <Product>BattleRoyale</Product>
+        <DebugType>portable</DebugType>
+        <DebugSymbols>true</DebugSymbols>
+        <Optimize>false</Optimize>
     </PropertyGroup>
 
     <ItemGroup>
@@ -10,6 +19,12 @@
       </Reference>
       <Reference Include="assembly_valheim">
         <HintPath>..\..\..\.local\share\Steam\steamapps\common\Valheim\valheim_Data\Managed\assembly_valheim.dll</HintPath>
+      </Reference>
+      <Reference Include="Splatform">
+        <HintPath>..\..\..\.local\share\Steam\steamapps\common\Valheim\valheim_Data\Managed\Splatform.dll</HintPath>
+      </Reference>
+      <Reference Include="assembly_utils">
+        <HintPath>..\..\..\.local\share\Steam\steamapps\common\Valheim\valheim_Data\Managed\assembly_utils.dll</HintPath>
       </Reference>
       <Reference Include="BepInEx">
         <HintPath>..\..\..\.local\share\Steam\steamapps\common\Valheim\BepInEx\core\BepInEx.dll</HintPath>
@@ -46,7 +61,29 @@
       </Reference>
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Data\" />
+      <Folder Include="Managers\" />
+      <Folder Include="Patches\" />
+      <Folder Include="UI\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="valheim_sources\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="valheim_sources\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="valheim_sources\**" />
+    </ItemGroup>
+
 <Target Name="PostBuild" AfterTargets="PostBuildEvent">
   <Copy SourceFiles="$(TargetPath)" DestinationFolder="..\..\..\.local\share\Steam\steamapps\common\Valheim\BepInEx\plugins\" />
+  <Copy SourceFiles="$(TargetDir)$(AssemblyName).pdb" DestinationFolder="..\..\..\.local\share\Steam\steamapps\common\Valheim\BepInEx\plugins\" Condition="Exists('$(TargetDir)$(AssemblyName).pdb')" />
+  <Copy SourceFiles="$(TargetPath)" DestinationFolder="..\..\..\.local\share\Steam\steamapps\common\Valheim dedicated server\BepInEx\plugins\" />
+  <Copy SourceFiles="$(TargetDir)$(AssemblyName).pdb" DestinationFolder="..\..\..\.local\share\Steam\steamapps\common\Valheim dedicated server\BepInEx\plugins\" Condition="Exists('$(TargetDir)$(AssemblyName).pdb')" />
 </Target>
 </Project>
