@@ -265,7 +265,12 @@ namespace BattleRoyale
         private static void RpcWipeInventory(long sender, ZPackage pkg)
         {
             _log?.LogInfo("[ClientSync] RpcWipeInventory: wiping local inventory");
-            Player.m_localPlayer?.GetInventory().RemoveAll();
+            var localPlayer = Player.m_localPlayer;
+            if (localPlayer != null)
+            {
+                localPlayer.UnequipAllItems();
+                localPlayer.GetInventory().RemoveAll();
+            }
         }
 
         private static void RpcSetSkills(long sender, ZPackage pkg)

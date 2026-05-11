@@ -169,6 +169,7 @@ namespace BattleRoyale
             int count = 0;
             foreach (var player in Player.GetAllPlayers())
             {
+                player.UnequipAllItems();
                 player.GetInventory().RemoveAll();
                 count++;
             }

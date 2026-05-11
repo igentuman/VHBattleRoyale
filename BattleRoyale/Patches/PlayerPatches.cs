@@ -37,6 +37,7 @@ namespace BattleRoyale.Patches
             if (MatchManager.Instance?.State?.Phase == MatchPhase.Active)
             {
                 Main.Log?.LogInfo($"[PlayerPatches] Match active — wiping inventory for '{__instance.GetPlayerName()}'");
+                __instance.UnequipAllItems();
                 __instance.GetInventory().RemoveAll();
                 return;
             }
