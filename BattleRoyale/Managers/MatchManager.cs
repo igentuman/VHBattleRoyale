@@ -69,6 +69,7 @@ namespace BattleRoyale
 
             WipeAllInventories();
             SetAllPlayerSkills();
+            ApplyStartBuffs();
             TeleportPlayersToStart();
 
             BREventBus.Emit(new MatchStartedEvent
@@ -149,6 +150,18 @@ namespace BattleRoyale
 
             Broadcast($"{killerName} killed {victimName} — {remaining} players remaining");
             _log.LogInfo($"[MatchManager] Kill: {killerName} → {victimName}, alive: {remaining}");
+        }
+
+        private void ApplyStartBuffs()
+        {
+            float duration = Main.Instance?.StartBuffDuration ?? 0f;
+            if (duration <= 0f) return;
+
+            foreach (var player in Player.GetAllPlayers())
+                ClientSync.ApplyBuffsToPlayer(player, duration);
+
+            _log.LogInfo($"[MatchManager] ApplyStartBuffs: duration={duration}s, broadcasting to clients");
+            ClientSync.BroadcastApplyBuffs(duration);
         }
 
         private void SetAllPlayerSkills()

@@ -15,13 +15,33 @@ namespace BattleRoyale
         private const string RPC_TeleportTo    = "BR_TeleportTo";
         private const string RPC_WipeInventory = "BR_WipeInventory";
         private const string RPC_SetSkills     = "BR_SetSkills";
+        private const string RPC_ApplyBuffs    = "BR_ApplyBuffs";
 
-        public static float    ZoneRadius      { get; private set; } = 500f;
-        public static Vector3  ZoneCenter      { get; private set; } = Vector3.zero;
-        public static float    ZoneDamage      { get; private set; } = 5f;
-        public static float    ZoneNextRadius  { get; private set; } = 500f;
-        public static Vector3  ZoneNextCenter  { get; private set; } = Vector3.zero;
-        public static int      ZonePhaseNumber { get; private set; } = 1;
+        private static readonly string[] StartBuffSEs =
+        {
+            "GP_Eikthyr",   // eiktyr / stamina usage reduction
+            "Rested",       // rested + hp regen
+            "CorpseRun",    // corpse run
+            "Feather",      // feather fall
+            "NoSkillDrain", // no skill drain
+            "Sneaking",     // sneaky bonus
+            "GP_Bonemass",  // bonemass - blunt/slash/pierce resistance
+            "SE_Ratatoskr", // ratatosk - movement speed bonus
+        };
+
+        public static float    ZoneRadius           { get; private set; } = 500f;
+        public static Vector3  ZoneCenter           { get; private set; } = Vector3.zero;
+        public static float    ZoneDamage           { get; private set; } = 5f;
+        public static float    ZoneNextRadius       { get; private set; } = 500f;
+        public static Vector3  ZoneNextCenter       { get; private set; } = Vector3.zero;
+        public static int      ZonePhaseNumber      { get; private set; } = 1;
+        // Shrink interpolation data — lets ZoneRenderer lerp locally between packets
+        public static bool     ZoneIsShrinking      { get; private set; }
+        public static float    ZoneShrinkStartRadius{ get; private set; }
+        public static Vector3  ZoneShrinkStartCenter{ get; private set; }
+        public static float    ZoneShrinkDuration   { get; private set; }
+        public static float    ZoneShrinkElapsed    { get; private set; }
+        public static float    ZoneSyncTime         { get; private set; }
         public static int      AliveCount      { get; private set; } = 0;
         public static MatchPhase Phase         { get; private set; } = MatchPhase.Lobby;
         public static string   WinnerName      { get; private set; } = "";
@@ -62,7 +82,8 @@ namespace BattleRoyale
             ZRoutedRpc.instance.Register<ZPackage>(RPC_TeleportTo,    RpcTeleportTo);
             ZRoutedRpc.instance.Register<ZPackage>(RPC_WipeInventory, RpcWipeInventory);
             ZRoutedRpc.instance.Register<ZPackage>(RPC_SetSkills,     RpcSetSkills);
-            _log?.LogInfo("[ClientSync] RPC handlers registered: ZoneUpdate, MatchStarted, MatchEnded, PlayerKilled, SystemMessage, VoteStart, TeleportTo, WipeInventory, SetSkills");
+            ZRoutedRpc.instance.Register<ZPackage>(RPC_ApplyBuffs,    RpcApplyBuffs);
+            _log?.LogInfo("[ClientSync] RPC handlers registered: ZoneUpdate, MatchStarted, MatchEnded, PlayerKilled, SystemMessage, VoteStart, TeleportTo, WipeInventory, SetSkills, ApplyBuffs");
         }
 
         // Server only: mirror BREventBus events to all clients via ZRoutedRpc
@@ -79,13 +100,19 @@ namespace BattleRoyale
 
         private static void ForwardZoneUpdate(ZoneUpdatedEvent e)
         {
-            _log?.LogInfo($"[ClientSync] ForwardZoneUpdate: radius={e.Radius}, center={e.Center}, dmg={e.DamagePerSecond}, nextR={e.NextRadius}, phase={e.PhaseNumber}");
-            ZoneRadius      = e.Radius;
-            ZoneCenter      = e.Center;
-            ZoneDamage      = e.DamagePerSecond;
-            ZoneNextRadius  = e.NextRadius;
-            ZoneNextCenter  = e.NextCenter;
-            ZonePhaseNumber = e.PhaseNumber;
+            _log?.LogInfo($"[ClientSync] ForwardZoneUpdate: radius={e.Radius}, center={e.Center}, dmg={e.DamagePerSecond}, nextR={e.NextRadius}, phase={e.PhaseNumber}, shrinking={e.IsShrinking}");
+            ZoneRadius            = e.Radius;
+            ZoneCenter            = e.Center;
+            ZoneDamage            = e.DamagePerSecond;
+            ZoneNextRadius        = e.NextRadius;
+            ZoneNextCenter        = e.NextCenter;
+            ZonePhaseNumber       = e.PhaseNumber;
+            ZoneIsShrinking       = e.IsShrinking;
+            ZoneShrinkStartRadius = e.ShrinkStartRadius;
+            ZoneShrinkStartCenter = e.ShrinkStartCenter;
+            ZoneShrinkDuration    = e.ShrinkDuration;
+            ZoneShrinkElapsed     = e.ShrinkElapsed;
+            ZoneSyncTime          = Time.time;
 
             var pkg = new ZPackage();
             pkg.Write(e.Radius);
@@ -94,6 +121,11 @@ namespace BattleRoyale
             pkg.Write(e.NextRadius);
             pkg.Write(e.NextCenter);
             pkg.Write(e.PhaseNumber);
+            pkg.Write(e.IsShrinking);
+            pkg.Write(e.ShrinkStartRadius);
+            pkg.Write(e.ShrinkStartCenter);
+            pkg.Write(e.ShrinkDuration);
+            pkg.Write(e.ShrinkElapsed);
             ZRoutedRpc.instance?.InvokeRoutedRPC(ZRoutedRpc.Everybody, RPC_ZoneUpdate, pkg);
         }
 
@@ -154,6 +186,32 @@ namespace BattleRoyale
             ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, RPC_WipeInventory, new ZPackage());
         }
 
+        public static void BroadcastApplyBuffs(float duration)
+        {
+            if (ZRoutedRpc.instance == null) return;
+            _log?.LogInfo($"[ClientSync] BroadcastApplyBuffs: duration={duration}");
+            var pkg = new ZPackage();
+            pkg.Write(duration);
+            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, RPC_ApplyBuffs, pkg);
+        }
+
+        public static void ApplyBuffsToPlayer(Player player, float duration)
+        {
+            if (player == null || ObjectDB.instance == null) return;
+            var seMan = player.GetSEMan();
+            foreach (var seName in StartBuffSEs)
+            {
+                var se = ObjectDB.instance.GetStatusEffect(seName.GetStableHashCode());
+                if (se == null) continue;
+                var active = seMan.AddStatusEffect(se, true);
+                if (active != null && duration > 0f)
+                    active.m_ttl = duration;
+            }
+        }
+
+        public static void ApplyBuffsToLocalPlayer(float duration)
+            => ApplyBuffsToPlayer(Player.m_localPlayer, duration);
+
         public static void BroadcastSetSkills(int level)
         {
             if (ZRoutedRpc.instance == null) return;
@@ -167,13 +225,19 @@ namespace BattleRoyale
 
         private static void RpcZoneUpdate(long sender, ZPackage pkg)
         {
-            ZoneRadius      = pkg.ReadSingle();
-            ZoneCenter      = pkg.ReadVector3();
-            ZoneDamage      = pkg.ReadSingle();
-            ZoneNextRadius  = pkg.ReadSingle();
-            ZoneNextCenter  = pkg.ReadVector3();
-            ZonePhaseNumber = pkg.ReadInt();
-            _log?.LogInfo($"[ClientSync] RpcZoneUpdate received: radius={ZoneRadius}, center={ZoneCenter}, dmg={ZoneDamage}, nextR={ZoneNextRadius}, phase={ZonePhaseNumber}");
+            ZoneRadius            = pkg.ReadSingle();
+            ZoneCenter            = pkg.ReadVector3();
+            ZoneDamage            = pkg.ReadSingle();
+            ZoneNextRadius        = pkg.ReadSingle();
+            ZoneNextCenter        = pkg.ReadVector3();
+            ZonePhaseNumber       = pkg.ReadInt();
+            ZoneIsShrinking       = pkg.ReadBool();
+            ZoneShrinkStartRadius = pkg.ReadSingle();
+            ZoneShrinkStartCenter = pkg.ReadVector3();
+            ZoneShrinkDuration    = pkg.ReadSingle();
+            ZoneShrinkElapsed     = pkg.ReadSingle();
+            ZoneSyncTime          = Time.time;
+            _log?.LogInfo($"[ClientSync] RpcZoneUpdate received: radius={ZoneRadius}, center={ZoneCenter}, dmg={ZoneDamage}, nextR={ZoneNextRadius}, phase={ZonePhaseNumber}, shrinking={ZoneIsShrinking}");
         }
 
         private static void RpcMatchStarted(long sender, ZPackage pkg)
@@ -303,6 +367,13 @@ namespace BattleRoyale
                 skill.m_level = (float)level;
                 skill.m_accumulator = 0f;
             }
+        }
+
+        private static void RpcApplyBuffs(long sender, ZPackage pkg)
+        {
+            float duration = pkg.ReadSingle();
+            _log?.LogInfo($"[ClientSync] RpcApplyBuffs received: duration={duration}");
+            ApplyBuffsToLocalPlayer(duration);
         }
 
         private static void AddKillFeedEntry(string killer, string victim, int alive)

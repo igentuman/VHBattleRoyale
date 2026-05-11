@@ -26,6 +26,7 @@ namespace BattleRoyale
         public float StructureDamageMultiplier => _cfgStructureDamageMultiplier.Value;
         public float StaminaCostMultiplier => _cfgStaminaCostMultiplier.Value;
         public int StartSkillLevel => _cfgStartSkillLevel.Value;
+        public float StartBuffDuration => _cfgStartBuffDuration.Value;
 
         private ConfigEntry<float> _cfgZonePhaseWaitDuration;
         private ConfigEntry<float> _cfgZonePhaseShrinkDuration;
@@ -36,6 +37,7 @@ namespace BattleRoyale
         private ConfigEntry<string> _cfgApiBaseUrl;
         private ConfigEntry<bool> _cfgApiEnabled;
         private ConfigEntry<int> _cfgStartSkillLevel;
+        private ConfigEntry<float> _cfgStartBuffDuration;
 
         private Harmony _harmony;
         private bool _initialized;
@@ -65,6 +67,7 @@ namespace BattleRoyale
             _cfgApiBaseUrl                = Config.Bind("API",       "BaseUrl",  "http://localhost:3000",               "Backend API base URL");
             _cfgApiEnabled                = Config.Bind("API",       "Enabled",                false,                   "Enable API event forwarding (requires backend project)");
             _cfgStartSkillLevel           = Config.Bind("Match",     "StartSkillLevel",           20,                   "Skill level set for all players when match starts (0 = disabled)");
+            _cfgStartBuffDuration         = Config.Bind("Match",     "StartBuffDuration",        300f,                   "Seconds all start buffs last (Eikthyr, rested, corpse run, feather fall, no skill drain, sneaky). 0 = disabled");
         }
 
         public void OnServerReady()

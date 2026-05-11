@@ -46,7 +46,23 @@ namespace BattleRoyale.UI
 
             if (!active) return;
 
-            UpdateRing(_currentRing, ClientSync.ZoneCenter,    ClientSync.ZoneRadius);
+            float displayRadius;
+            Vector3 displayCenter;
+
+            if (ClientSync.ZoneIsShrinking && ClientSync.ZoneShrinkDuration > 0f)
+            {
+                float elapsed = ClientSync.ZoneShrinkElapsed + (Time.time - ClientSync.ZoneSyncTime);
+                float t = Mathf.Clamp01(elapsed / ClientSync.ZoneShrinkDuration);
+                displayRadius = Mathf.Lerp(ClientSync.ZoneShrinkStartRadius, ClientSync.ZoneNextRadius, t);
+                displayCenter = Vector3.Lerp(ClientSync.ZoneShrinkStartCenter, ClientSync.ZoneNextCenter, t);
+            }
+            else
+            {
+                displayRadius = ClientSync.ZoneRadius;
+                displayCenter = ClientSync.ZoneCenter;
+            }
+
+            UpdateRing(_currentRing, displayCenter, displayRadius);
             if (showNext)
                 UpdateRing(_nextRing, ClientSync.ZoneNextCenter, ClientSync.ZoneNextRadius);
         }

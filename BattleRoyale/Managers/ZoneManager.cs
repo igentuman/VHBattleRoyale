@@ -39,7 +39,8 @@ namespace BattleRoyale
         private bool            _warned10;
         private ManualLogSource _log;
 
-        private const float BroadcastInterval = 5f;
+        private const float BroadcastIntervalIdle     = 5f;
+        private const float BroadcastIntervalShrinking = 1f;
 
         public static void Init(ZoneConfig config, ManualLogSource log)
         {
@@ -166,7 +167,8 @@ namespace BattleRoyale
             ApplyZoneDamage(dt);
 
             _broadcastTimer += dt;
-            if (_broadcastTimer >= BroadcastInterval)
+            float broadcastInterval = _shrinking ? BroadcastIntervalShrinking : BroadcastIntervalIdle;
+            if (_broadcastTimer >= broadcastInterval)
             {
                 _broadcastTimer = 0f;
                 string status = _done ? "final" : (_shrinking ? "shrinking" : "waiting");
@@ -180,14 +182,19 @@ namespace BattleRoyale
         {
             BREventBus.Emit(new ZoneUpdatedEvent
             {
-                MatchId         = MatchManager.Instance?.State?.MatchId ?? "",
-                Radius          = _currentRadius,
-                Center          = _currentCenter,
-                DamagePerSecond = GetDamagePerSecond(),
-                NextRadius      = _targetRadius,
-                NextCenter      = _targetCenter,
-                PhaseNumber     = _phaseIndex + 1,
-                Timestamp       = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+                MatchId          = MatchManager.Instance?.State?.MatchId ?? "",
+                Radius           = _currentRadius,
+                Center           = _currentCenter,
+                DamagePerSecond  = GetDamagePerSecond(),
+                NextRadius       = _targetRadius,
+                NextCenter       = _targetCenter,
+                PhaseNumber      = _phaseIndex + 1,
+                Timestamp        = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                IsShrinking      = _shrinking,
+                ShrinkStartRadius = _shrinkStartRadius,
+                ShrinkStartCenter = _shrinkStartCenter,
+                ShrinkDuration   = _config.PhaseShrinkDuration,
+                ShrinkElapsed    = _phaseElapsed,
             });
         }
 

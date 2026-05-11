@@ -37,6 +37,12 @@ namespace BattleRoyale
         public Vector3 NextCenter;
         public int     PhaseNumber;
         public long    Timestamp;
+        // Shrink interpolation — lets clients reproduce the server lerp locally
+        public bool    IsShrinking;
+        public float   ShrinkStartRadius;
+        public Vector3 ShrinkStartCenter;
+        public float   ShrinkDuration;
+        public float   ShrinkElapsed;
     }
 
     public struct LootSpawnedEvent : IBREvent
