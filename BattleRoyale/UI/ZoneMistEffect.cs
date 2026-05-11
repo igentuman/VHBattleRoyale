@@ -112,14 +112,19 @@ namespace BattleRoyale.UI
                 return;
             }
 
-            var player = Player.m_localPlayer;
-            if (player == null)
+            Vector3 pPos;
+            if (ClientSync.IsSpectator)
+                pPos = SpectatorManager.FlyPosition;
+            else
             {
-                SetAllPlaying(false);
-                return;
+                var player = Player.m_localPlayer;
+                if (player == null)
+                {
+                    SetAllPlaying(false);
+                    return;
+                }
+                pPos = player.transform.position;
             }
-
-            Vector3 pPos   = player.transform.position;
             Vector3 center = ClientSync.ZoneCenter;
             float   radius = ClientSync.ZoneRadius;
 

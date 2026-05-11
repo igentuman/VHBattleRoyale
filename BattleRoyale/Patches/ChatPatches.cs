@@ -60,6 +60,34 @@ namespace BattleRoyale.Patches
         {
             Main.Log?.LogInfo($"[ChatVotePatch] RPC_Say received: user='{user.Name}' text='{text}' IsServer={Main.IsServer}");
 
+            if (text == "!spectator")
+            {
+                if (ClientSync.Phase != MatchPhase.Lobby)
+                {
+                    Main.Log?.LogInfo("[ChatVotePatch] !spectator ignored — not in lobby");
+                    return;
+                }
+
+                if (!Main.IsServer)
+                {
+                    // On a listen-server, RPC_Say fires on both the server path (IsServer=true,
+                    // handled above) and the client path (IsServer=false). Skip the RPC if the
+                    // server already handled it (player is already a spectator).
+                    if (ClientSync.SpectatorList.Contains(user.Name))
+                    {
+                        Main.Log?.LogInfo($"[ChatVotePatch] Client: '{user.Name}' already spectator, skip duplicate RPC");
+                        return;
+                    }
+                    Main.Log?.LogInfo($"[ChatVotePatch] Client sending RequestSpectator for '{user.Name}'");
+                    ClientSync.SendRequestSpectator(user.Name);
+                    return;
+                }
+
+                Main.Log?.LogInfo($"[ChatVotePatch] Server: '{user.Name}' entering spectator mode");
+                SpectatorManager.EnterSpectatorModeByName(user.Name);
+                return;
+            }
+
             if (text != "!brstart") return;
 
             if (!Main.IsServer)
@@ -112,6 +140,8 @@ namespace BattleRoyale.Patches
             int total = Player.GetAllPlayers().Count;
             if (total == 0 && ZNet.instance != null)
                 total = ZNet.instance.GetPeers().Count;
+            int spectCount = MatchManager.Instance?.State?.SpectatorPlayers.Count ?? 0;
+            total = System.Math.Max(1, total - spectCount);
             int count = _votes.Count;
 
             Main.Log?.LogInfo($"[VoteTracker] Vote from '{playerName}': {count}/{total} ready. Set: [{string.Join(", ", _votes)}]");

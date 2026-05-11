@@ -32,7 +32,7 @@ namespace BattleRoyale.UI
 
             _boxStyle = new GUIStyle(GUI.skin.box)
             {
-                fontSize  = 17,
+                fontSize  = 34,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
             };
@@ -40,7 +40,7 @@ namespace BattleRoyale.UI
 
             _labelStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize  = 17,
+                fontSize  = 34,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
             };
@@ -48,20 +48,20 @@ namespace BattleRoyale.UI
 
             _warnStyle = new GUIStyle(_labelStyle)
             {
-                fontSize = 22
+                fontSize = 44
             };
             _warnStyle.normal.textColor = new Color(1f, 0.3f, 0.3f);
 
             _killStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize  = 15,
+                fontSize  = 30,
                 fontStyle = FontStyle.Bold
             };
             _killStyle.normal.textColor = new Color(1f, 0.85f, 0.4f);
 
             _btnStyle = new GUIStyle(GUI.skin.button)
             {
-                fontSize  = 16,
+                fontSize  = 32,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
             };
@@ -85,6 +85,16 @@ namespace BattleRoyale.UI
                 return;
             }
 
+            if (ClientSync.IsSpectator)
+            {
+                SpectatorHud.Draw();
+                DrawPlayerCount();
+                DrawZoneInfo();
+                DrawKillFeed();
+                DrawZoneCirclesOnMap();
+                return;
+            }
+
             DrawPlayerCount();
             DrawZoneInfo();
             DrawKillFeed();
@@ -102,32 +112,52 @@ namespace BattleRoyale.UI
             if (InventoryGui.instance == null || !InventoryGui.IsVisible()) return;
             if (Player.m_localPlayer == null) return;
 
-            const float w = 200f, h = 44f;
+            const float w = 400f, h = 88f, joinW = 194f, gap = 12f;
             float x = 10f;
             float y = Screen.height - h - 10f;
 
             if (_voted)
-            {
                 GUI.Button(new Rect(x, y, w, h), "Vote sent!", _btnVotedStyle);
-            }
             else if (GUI.Button(new Rect(x, y, w, h), "Start Match", _btnStyle))
             {
                 _voted = true;
                 ClientSync.SendVoteStart(Player.m_localPlayer.GetPlayerName());
             }
+
+            float joinY = y - h - 6f;
+            bool isSpec = ClientSync.IsSpectator;
+            string playerName = Player.m_localPlayer.GetPlayerName();
+
+            if (GUI.Button(new Rect(x, joinY, joinW, h), "Join as Spectator",
+                    isSpec ? _btnVotedStyle : _btnStyle) && !isSpec)
+            {
+                ClientSync.SendRequestSpectator(playerName);
+            }
+
+            if (GUI.Button(new Rect(x + joinW + gap, joinY, joinW, h), "Join as Player",
+                    isSpec ? _btnStyle : _btnVotedStyle) && isSpec)
+            {
+                ClientSync.SendRequestJoinPlayer(playerName);
+            }
         }
 
         private void DrawPlayerCount()
         {
-            GUI.Box(new Rect(Screen.width - 205, 10, 195, 38),
+            GUI.Box(new Rect(Screen.width - 410, 10, 390, 76),
                 $"Players alive: {ClientSync.AliveCount}", _boxStyle);
         }
 
         private void DrawZoneInfo()
         {
-            if (Player.m_localPlayer == null) return;
+            Vector3 viewPos;
+            if (ClientSync.IsSpectator)
+                viewPos = SpectatorManager.FlyPosition;
+            else if (Player.m_localPlayer != null)
+                viewPos = Player.m_localPlayer.transform.position;
+            else
+                return;
 
-            float dist    = Vector3.Distance(Player.m_localPlayer.transform.position, ClientSync.ZoneCenter);
+            float dist    = Vector3.Distance(viewPos, ClientSync.ZoneCenter);
             float toEdge  = ClientSync.ZoneRadius - dist;
             bool  outside = toEdge < 0f;
 
@@ -138,11 +168,11 @@ namespace BattleRoyale.UI
 
             GUIStyle style = outside ? _warnStyle : _labelStyle;
 
-            float w = 340f;
+            float w = 680f;
             float x = (Screen.width - w) / 2f;
-            GUI.Box(new Rect(x, 10, w, 60), "", _boxStyle);
-            GUI.Label(new Rect(x, 14, w, 22), line1, _labelStyle);
-            GUI.Label(new Rect(x, 38, w, 26), line2, style);
+            GUI.Box(new Rect(x, 10, w, 120), "", _boxStyle);
+            GUI.Label(new Rect(x, 18, w, 44), line1, _labelStyle);
+            GUI.Label(new Rect(x, 76, w, 52), line2, style);
         }
 
         private void DrawZoneCirclesOnMap()
@@ -224,18 +254,18 @@ namespace BattleRoyale.UI
             lock (ClientSync.KillFeed)
                 snapshot = new List<ClientSync.KillFeedEntry>(ClientSync.KillFeed);
 
-            float y = Screen.height / 2f - (snapshot.Count * 26f) / 2f;
+            float y = Screen.height / 2f - (snapshot.Count * 52f) / 2f;
 
             foreach (var entry in snapshot)
             {
                 float age = now - entry.TimeAdded;
-                if (age > KillFeedDuration) { y += 26f; continue; }
+                if (age > KillFeedDuration) { y += 52f; continue; }
 
                 float alpha = Mathf.Clamp01(1f - age / KillFeedDuration);
                 _killStyle.normal.textColor = new Color(1f, 0.85f, 0.4f, alpha);
                 string msg = $"  {entry.KillerName}  killed  {entry.VictimName}  [{entry.AliveRemaining} left]";
-                GUI.Label(new Rect(10, y, 500, 24), msg, _killStyle);
-                y += 26f;
+                GUI.Label(new Rect(10, y, 1000, 48), msg, _killStyle);
+                y += 52f;
             }
         }
 
@@ -245,9 +275,9 @@ namespace BattleRoyale.UI
                 ? "MATCH ENDED"
                 : $"WINNER: {ClientSync.WinnerName.ToUpper()}";
 
-            float w = 500f, h = 70f;
-            GUI.Box(new Rect((Screen.width - w) / 2f, Screen.height / 2f - h / 2f - 60f, w, h), "", _boxStyle);
-            GUI.Label(new Rect((Screen.width - w) / 2f, Screen.height / 2f - h / 2f - 60f, w, h), msg, _warnStyle);
+            float w = 1000f, h = 140f;
+            GUI.Box(new Rect((Screen.width - w) / 2f, Screen.height / 2f - h / 2f - 120f, w, h), "", _boxStyle);
+            GUI.Label(new Rect((Screen.width - w) / 2f, Screen.height / 2f - h / 2f - 120f, w, h), msg, _warnStyle);
         }
 
         private void DrawZoneDamageOverlay()

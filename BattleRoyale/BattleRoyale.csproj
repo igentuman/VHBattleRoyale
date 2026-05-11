@@ -72,6 +72,11 @@
     </ItemGroup>
 
     <ItemGroup>
+      <EmbeddedResource Include="config\chest_loot_tables.json" />
+      <EmbeddedResource Include="config\mob_loot_tables.json" />
+    </ItemGroup>
+
+    <ItemGroup>
       <Compile Remove="valheim_sources\**" />
     </ItemGroup>
 

@@ -1,3 +1,5 @@
+using System.IO;
+using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
@@ -43,11 +45,40 @@ namespace BattleRoyale
         private bool _initialized;
         private bool _clientInitialized;
 
+        private static readonly string[] EmbeddedConfigs = {
+            "chest_loot_tables.json",
+            "mob_loot_tables.json"
+        };
+
+        private void ExtractDefaultConfigs()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var destDir = Path.Combine(Paths.ConfigPath, "BattleRoyale");
+            Directory.CreateDirectory(destDir);
+
+            foreach (var file in EmbeddedConfigs)
+            {
+                var dest = Path.Combine(destDir, file);
+                if (File.Exists(dest)) continue;
+
+                using var stream = assembly.GetManifestResourceStream($"BattleRoyale.config.{file}");
+                if (stream == null)
+                {
+                    Logger.LogWarning($"[BattleRoyale] Embedded resource not found: {file}");
+                    continue;
+                }
+                using var reader = new StreamReader(stream);
+                File.WriteAllText(dest, reader.ReadToEnd());
+                Logger.LogInfo($"[BattleRoyale] Extracted default config: {dest}");
+            }
+        }
+
         private void Awake()
         {
             _instance = this;
             Log = Logger;
 
+            ExtractDefaultConfigs();
             InitConfig();
             ChatCommands.Register();
             _harmony = new Harmony(PluginGuid);
@@ -86,6 +117,7 @@ namespace BattleRoyale
 
             ClientSync.Init(Logger);
             MatchManager.Init(Logger);
+            SpectatorManager.Init(Logger);
             ZoneManager.Init(zoneConfig, Logger);
             LootManager.Init(_cfgLootSpawnCount.Value, Logger);
             ApiClient.Init(_cfgApiBaseUrl.Value, _cfgApiEnabled.Value, Logger);

@@ -1,0 +1,163 @@
+{
+  "TreasureChest_meadows": {
+    "m_dropMin": 1,
+    "m_dropMax": 3,
+    "m_dropChance": 1.0,
+    "m_oneOfEach": false,
+    "m_drops": [
+      { "m_item": "Coins",          "m_stackMin":  5, "m_stackMax": 25, "m_weight": 3.0, "m_dontScale": false },
+      { "m_item": "Ruby",           "m_stackMin":  1, "m_stackMax":  1, "m_weight": 0.3, "m_dontScale": true  },
+      { "m_item": "Amber",          "m_stackMin":  1, "m_stackMax":  2, "m_weight": 1.0, "m_dontScale": true  },
+      { "m_item": "ArrowFlint",     "m_stackMin":  5, "m_stackMax": 20, "m_weight": 2.0, "m_dontScale": false },
+      { "m_item": "LeatherScraps",  "m_stackMin":  3, "m_stackMax":  8, "m_weight": 2.0, "m_dontScale": false },
+      { "m_item": "Flint",          "m_stackMin":  3, "m_stackMax":  8, "m_weight": 2.0, "m_dontScale": false },
+      { "m_item": "DeerHide",       "m_stackMin":  1, "m_stackMax":  3, "m_weight": 1.5, "m_dontScale": false },
+      { "m_item": "BoneFragments",  "m_stackMin":  3, "m_stackMax":  8, "m_weight": 1.5, "m_dontScale": false },
+      { "m_item": "Feathers",       "m_stackMin":  3, "m_stackMax":  8, "m_weight": 1.5, "m_dontScale": false },
+      { "m_item": "Torch",          "m_stackMin":  1, "m_stackMax":  2, "m_weight": 1.0, "m_dontScale": true  }
+    ]
+  },
+  "TreasureChest_blackforest": {
+    "m_dropMin": 1,
+    "m_dropMax": 3,
+    "m_dropChance": 1.0,
+    "m_oneOfEach": false,
+    "m_drops": [
+      { "m_item": "Coins",          "m_stackMin": 10, "m_stackMax": 50,  "m_weight": 3.0, "m_dontScale": false },
+      { "m_item": "Ruby",           "m_stackMin":  1, "m_stackMax":  1,  "m_weight": 0.5, "m_dontScale": true  },
+      { "m_item": "AmberPearl",     "m_stackMin":  1, "m_stackMax":  2,  "m_weight": 0.5, "m_dontScale": true  },
+      { "m_item": "Amber",          "m_stackMin":  1, "m_stackMax":  3,  "m_weight": 1.5, "m_dontScale": true  },
+      { "m_item": "CopperOre",      "m_stackMin":  3, "m_stackMax": 10,  "m_weight": 2.0, "m_dontScale": false },
+      { "m_item": "TinOre",         "m_stackMin":  3, "m_stackMax": 10,  "m_weight": 2.0, "m_dontScale": false },
+      { "m_item": "ArrowBronze",    "m_stackMin":  5, "m_stackMax": 20,  "m_weight": 2.0, "m_dontScale": false },
+      { "m_item": "Resin",          "m_stackMin":  5, "m_stackMax": 15,  "m_weight": 2.0, "m_dontScale": false },
+      { "m_item": "Honey",          "m_stackMin":  2, "m_stackMax":  5,  "m_weight": 1.5, "m_dontScale": false },
+      { "m_item": "MeadHealthMinor","m_stackMin":  1, "m_stackMax":  2,  "m_weight": 1.0, "m_dontScale": true  }
+    ]
+  },
+  "TreasureChest_forestcrypt": {
+    "m_dropMin": 2,
+    "m_dropMax": 4,
+    "m_dropChance": 1.0,
+    "m_oneOfEach": false,
+    "m_drops": [
+      { "m_item": "Coins",          "m_stackMin": 15, "m_stackMax":  80, "m_weight": 3.0, "m_dontScale": false },
+      { "m_item": "Ruby",           "m_stackMin":  1, "m_stackMax":   2, "m_weight": 0.7, "m_dontScale": true  },
+      { "m_item": "AmberPearl",     "m_stackMin":  1, "m_stackMax":   2, "m_weight": 0.7, "m_dontScale": true  },
+      { "m_item": "Amber",          "m_stackMin":  1, "m_stackMax":   3, "m_weight": 1.5, "m_dontScale": true  },
+      { "m_item": "IronScrap",      "m_stackMin":  5, "m_stackMax":  15, "m_weight": 2.0, "m_dontScale": false },
+      { "m_item": "WitheredBone",   "m_stackMin":  1, "m_stackMax":   3, "m_weight": 1.0, "m_dontScale": false },
+      { "m_item": "ArrowIron",      "m_stackMin":  5, "m_stackMax":  20, "m_weight": 2.0, "m_dontScale": false },
+      { "m_item": "Entrails",       "m_stackMin":  3, "m_stackMax":  10, "m_weight": 1.5, "m_dontScale": false },
+      { "m_item": "MeadHealthMinor","m_stackMin":  1, "m_stackMax":   2, "m_weight": 1.0, "m_dontScale": true  }
+    ]
+  },
+  "TreasureChest_swamp": {
+    "m_dropMin": 2,
+    "m_dropMax": 4,
+    "m_dropChance": 1.0,
+    "m_oneOfEach": false,
+    "m_drops": [
+      { "m_item": "Coins",          "m_stackMin": 20, "m_stackMax": 100, "m_weight": 3.0, "m_dontScale": false },
+      { "m_item": "Ruby",           "m_stackMin":  1, "m_stackMax":   2, "m_weight": 0.7, "m_dontScale": true  },
+      { "m_item": "AmberPearl",     "m_stackMin":  1, "m_stackMax":   2, "m_weight": 0.7, "m_dontScale": true  },
+      { "m_item": "IronScrap",      "m_stackMin":  8, "m_stackMax":  20, "m_weight": 2.5, "m_dontScale": false },
+      { "m_item": "Chain",          "m_stackMin":  1, "m_stackMax":   2, "m_weight": 1.0, "m_dontScale": true  },
+      { "m_item": "Ooze",           "m_stackMin":  2, "m_stackMax":   6, "m_weight": 1.5, "m_dontScale": false },
+      { "m_item": "ArrowPoison",    "m_stackMin":  5, "m_stackMax":  20, "m_weight": 2.0, "m_dontScale": false },
+      { "m_item": "MeadPoisonResist","m_stackMin": 1, "m_stackMax":   2, "m_weight": 1.0, "m_dontScale": true  }
+    ]
+  },
+  "TreasureChest_mountains": {
+    "m_dropMin": 2,
+    "m_dropMax": 4,
+    "m_dropChance": 1.0,
+    "m_oneOfEach": false,
+    "m_drops": [
+      { "m_item": "Coins",          "m_stackMin": 30, "m_stackMax": 150, "m_weight": 3.0, "m_dontScale": false },
+      { "m_item": "Ruby",           "m_stackMin":  1, "m_stackMax":   3, "m_weight": 0.8, "m_dontScale": true  },
+      { "m_item": "AmberPearl",     "m_stackMin":  1, "m_stackMax":   3, "m_weight": 0.8, "m_dontScale": true  },
+      { "m_item": "SilverOre",      "m_stackMin":  5, "m_stackMax":  15, "m_weight": 2.5, "m_dontScale": false },
+      { "m_item": "DragonEgg",      "m_stackMin":  1, "m_stackMax":   1, "m_weight": 0.3, "m_dontScale": true  },
+      { "m_item": "WolfHairBundle", "m_stackMin":  3, "m_stackMax":   8, "m_weight": 1.5, "m_dontScale": false },
+      { "m_item": "ArrowFrost",     "m_stackMin":  5, "m_stackMax":  20, "m_weight": 2.0, "m_dontScale": false },
+      { "m_item": "MeadFrostResist","m_stackMin":  1, "m_stackMax":   2, "m_weight": 1.5, "m_dontScale": true  },
+      { "m_item": "Obsidian",       "m_stackMin":  5, "m_stackMax":  15, "m_weight": 2.0, "m_dontScale": false }
+    ]
+  },
+  "TreasureChest_plains": {
+    "m_dropMin": 2,
+    "m_dropMax": 5,
+    "m_dropChance": 1.0,
+    "m_oneOfEach": false,
+    "m_drops": [
+      { "m_item": "Coins",            "m_stackMin": 50, "m_stackMax": 200, "m_weight": 3.0, "m_dontScale": false },
+      { "m_item": "Ruby",             "m_stackMin":  1, "m_stackMax":   3, "m_weight": 0.8, "m_dontScale": true  },
+      { "m_item": "AmberPearl",       "m_stackMin":  1, "m_stackMax":   3, "m_weight": 0.8, "m_dontScale": true  },
+      { "m_item": "BlackMetalScrap",  "m_stackMin":  5, "m_stackMax":  20, "m_weight": 2.5, "m_dontScale": false },
+      { "m_item": "LinenThread",      "m_stackMin":  3, "m_stackMax":  10, "m_weight": 2.0, "m_dontScale": false },
+      { "m_item": "ArrowNeedle",      "m_stackMin":  5, "m_stackMax":  20, "m_weight": 2.0, "m_dontScale": false },
+      { "m_item": "Tar",              "m_stackMin":  3, "m_stackMax":  10, "m_weight": 1.5, "m_dontScale": false },
+      { "m_item": "GoblinTotem",      "m_stackMin":  1, "m_stackMax":   1, "m_weight": 0.3, "m_dontScale": true  },
+      { "m_item": "MeadHealthMedium", "m_stackMin":  1, "m_stackMax":   2, "m_weight": 1.0, "m_dontScale": true  }
+    ]
+  },
+  "TreasureChest_dvergrtower": {
+    "m_dropMin": 2,
+    "m_dropMax": 5,
+    "m_dropChance": 1.0,
+    "m_oneOfEach": false,
+    "m_drops": [
+      { "m_item": "Coins",            "m_stackMin": 50, "m_stackMax": 250, "m_weight": 3.0, "m_dontScale": false },
+      { "m_item": "BlackCore",        "m_stackMin":  1, "m_stackMax":   2, "m_weight": 0.5, "m_dontScale": true  },
+      { "m_item": "YggdrasilWood",    "m_stackMin":  5, "m_stackMax":  20, "m_weight": 2.5, "m_dontScale": false },
+      { "m_item": "Carapace",         "m_stackMin":  5, "m_stackMax":  15, "m_weight": 2.0, "m_dontScale": false },
+      { "m_item": "RoyalJelly",       "m_stackMin":  3, "m_stackMax":   8, "m_weight": 1.5, "m_dontScale": false },
+      { "m_item": "Eitr",             "m_stackMin":  3, "m_stackMax":  10, "m_weight": 2.0, "m_dontScale": false },
+      { "m_item": "ArrowCarapace",    "m_stackMin":  5, "m_stackMax":  20, "m_weight": 2.0, "m_dontScale": false },
+      { "m_item": "MeadEitrMinor",    "m_stackMin":  1, "m_stackMax":   2, "m_weight": 1.0, "m_dontScale": true  }
+    ]
+  },
+  "TreasureChest_hildir_crypt": {
+    "m_dropMin": 3,
+    "m_dropMax": 5,
+    "m_dropChance": 1.0,
+    "m_oneOfEach": true,
+    "m_drops": [
+      { "m_item": "Coins",            "m_stackMin": 100, "m_stackMax": 500, "m_weight": 1.0, "m_dontScale": false },
+      { "m_item": "Ruby",             "m_stackMin":   3, "m_stackMax":   6, "m_weight": 1.0, "m_dontScale": true  },
+      { "m_item": "AmberPearl",       "m_stackMin":   3, "m_stackMax":   6, "m_weight": 1.0, "m_dontScale": true  },
+      { "m_item": "Amber",            "m_stackMin":   5, "m_stackMax":  10, "m_weight": 1.0, "m_dontScale": true  },
+      { "m_item": "IronScrap",        "m_stackMin":  10, "m_stackMax":  25, "m_weight": 1.0, "m_dontScale": false },
+      { "m_item": "MeadHealthMedium", "m_stackMin":   2, "m_stackMax":   4, "m_weight": 1.0, "m_dontScale": true  }
+    ]
+  },
+  "TreasureChest_hildir_plains": {
+    "m_dropMin": 3,
+    "m_dropMax": 6,
+    "m_dropChance": 1.0,
+    "m_oneOfEach": true,
+    "m_drops": [
+      { "m_item": "Coins",            "m_stackMin": 200, "m_stackMax": 800, "m_weight": 1.0, "m_dontScale": false },
+      { "m_item": "Ruby",             "m_stackMin":   3, "m_stackMax":   8, "m_weight": 1.0, "m_dontScale": true  },
+      { "m_item": "AmberPearl",       "m_stackMin":   3, "m_stackMax":   8, "m_weight": 1.0, "m_dontScale": true  },
+      { "m_item": "BlackMetalScrap",  "m_stackMin":  10, "m_stackMax":  30, "m_weight": 1.0, "m_dontScale": false },
+      { "m_item": "LinenThread",      "m_stackMin":   5, "m_stackMax":  15, "m_weight": 1.0, "m_dontScale": false },
+      { "m_item": "MeadHealthMajor",  "m_stackMin":   2, "m_stackMax":   4, "m_weight": 1.0, "m_dontScale": true  }
+    ]
+  },
+  "TreasureChest_hildir_caves": {
+    "m_dropMin": 3,
+    "m_dropMax": 6,
+    "m_dropChance": 1.0,
+    "m_oneOfEach": true,
+    "m_drops": [
+      { "m_item": "Coins",            "m_stackMin": 150, "m_stackMax": 600, "m_weight": 1.0, "m_dontScale": false },
+      { "m_item": "Ruby",             "m_stackMin":   3, "m_stackMax":   6, "m_weight": 1.0, "m_dontScale": true  },
+      { "m_item": "AmberPearl",       "m_stackMin":   3, "m_stackMax":   6, "m_weight": 1.0, "m_dontScale": true  },
+      { "m_item": "DragonTear",       "m_stackMin":   1, "m_stackMax":   3, "m_weight": 1.0, "m_dontScale": true  },
+      { "m_item": "WolfHairBundle",   "m_stackMin":   5, "m_stackMax":  15, "m_weight": 1.0, "m_dontScale": false },
+      { "m_item": "MeadFrostResist",  "m_stackMin":   2, "m_stackMax":   4, "m_weight": 1.0, "m_dontScale": true  }
+    ]
+  }
+}

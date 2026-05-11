@@ -17,8 +17,11 @@ namespace BattleRoyale
         public int Seed;
         public MatchPhase Phase;
         public List<string> AlivePlayers = new List<string>();
+        public List<string> SpectatorPlayers = new List<string>();
         public int InitialPlayerCount;
         public DateTime StartTime;
         public string WinnerName;
+
+        public bool IsSpectator(string name) => SpectatorPlayers.Contains(name);
     }
 }

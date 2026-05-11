@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using BepInEx.Logging;
 using UnityEngine;
 
@@ -39,6 +40,9 @@ namespace BattleRoyale
                 return;
             }
 
+            // Preserve spectators declared before match start
+            var existingSpectators = new System.Collections.Generic.List<string>(State?.SpectatorPlayers ?? new System.Collections.Generic.List<string>());
+
             State = new MatchState
             {
                 MatchId = Guid.NewGuid().ToString("N"),
@@ -47,20 +51,28 @@ namespace BattleRoyale
                 StartTime = DateTime.UtcNow
             };
 
-            if (playerNames != null)
-            {
-                foreach (var name in playerNames)
-                    State.AlivePlayers.Add(name);
-            }
-            else
-            {
-                foreach (var player in Player.GetAllPlayers())
+            State.SpectatorPlayers.AddRange(existingSpectators);
+
+            // Always populate from connected players so voters who are spectators
+            // don't accidentally trigger a match with an empty alive list.
+            foreach (var player in Player.GetAllPlayers())
+                if (!State.IsSpectator(player.GetPlayerName()))
                     State.AlivePlayers.Add(player.GetPlayerName());
-                // Dedicated server fallback: Player objects don't exist server-side
-                if (State.AlivePlayers.Count == 0 && ZNet.instance != null)
+
+            // Dedicated server fallback: Player.GetAllPlayers() is empty server-side.
+            if (State.AlivePlayers.Count == 0 && ZNet.instance != null)
+            {
+                // Prefer the voter set (already filtered to connected players) before
+                // falling back to raw peer enumeration.
+                var candidates = playerNames ?? System.Linq.Enumerable.Empty<string>();
+                foreach (var name in candidates)
+                    if (!State.IsSpectator(name))
+                        State.AlivePlayers.Add(name);
+
+                if (State.AlivePlayers.Count == 0)
                 {
                     foreach (var peer in ZNet.instance.GetPeers())
-                        if (!string.IsNullOrEmpty(peer.m_playerName))
+                        if (!string.IsNullOrEmpty(peer.m_playerName) && !State.IsSpectator(peer.m_playerName))
                             State.AlivePlayers.Add(peer.m_playerName);
                 }
             }
@@ -91,7 +103,7 @@ namespace BattleRoyale
             lock (State.AlivePlayers)
                 count = State.AlivePlayers.Count;
 
-            if (count == 0)
+            if (count == 0 && State.InitialPlayerCount > 0)
                 End("nobody");
             else if (count == 1 && State.InitialPlayerCount > 1)
                 End(State.AlivePlayers[0]);
@@ -103,6 +115,7 @@ namespace BattleRoyale
 
             State.Phase = MatchPhase.Ended;
             State.WinnerName = winnerName;
+            State.SpectatorPlayers.Clear();
 
             float duration = (float)(DateTime.UtcNow - State.StartTime).TotalSeconds;
 
@@ -158,7 +171,10 @@ namespace BattleRoyale
             if (duration <= 0f) return;
 
             foreach (var player in Player.GetAllPlayers())
+            {
+                if (State.IsSpectator(player.GetPlayerName())) continue;
                 ClientSync.ApplyBuffsToPlayer(player, duration);
+            }
 
             _log.LogInfo($"[MatchManager] ApplyStartBuffs: duration={duration}s, broadcasting to clients");
             ClientSync.BroadcastApplyBuffs(duration);
@@ -171,6 +187,7 @@ namespace BattleRoyale
 
             foreach (var player in Player.GetAllPlayers())
             {
+                if (State.IsSpectator(player.GetPlayerName())) continue;
                 ClientSync.ApplySkillLevel(player.GetSkills(), level);
             }
             _log.LogInfo($"[MatchManager] SetAllPlayerSkills: set local player(s) to {level}, broadcasting to clients");
@@ -182,6 +199,7 @@ namespace BattleRoyale
             int count = 0;
             foreach (var player in Player.GetAllPlayers())
             {
+                if (State.IsSpectator(player.GetPlayerName())) continue;
                 player.UnequipAllItems();
                 player.GetInventory().RemoveAll();
                 count++;
@@ -195,11 +213,12 @@ namespace BattleRoyale
             // Teleport local Player objects (listen server / solo host)
             foreach (var player in Player.GetAllPlayers())
             {
+                if (State.IsSpectator(player.GetPlayerName())) continue;
                 Vector3 pos = FindMeadowsSpawn();
                 player.TeleportTo(pos, player.transform.rotation, true);
                 _log.LogInfo($"[MatchManager] Teleported (local) {player.GetPlayerName()} to {pos}");
             }
-            // Send teleport RPCs for dedicated server clients
+            // Send teleport RPCs for dedicated server clients (AlivePlayers already excludes spectators)
             if (ZNet.instance != null && ZNet.instance.IsDedicated())
             {
                 foreach (var name in State.AlivePlayers)

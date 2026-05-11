@@ -15,7 +15,12 @@ namespace BattleRoyale
         private const string RPC_TeleportTo    = "BR_TeleportTo";
         private const string RPC_WipeInventory = "BR_WipeInventory";
         private const string RPC_SetSkills     = "BR_SetSkills";
-        private const string RPC_ApplyBuffs    = "BR_ApplyBuffs";
+        private const string RPC_ApplyBuffs       = "BR_ApplyBuffs";
+        private const string RPC_EnterSpectator    = "BR_EnterSpectator";
+        private const string RPC_RequestSpectator  = "BR_RequestSpectator";
+        private const string RPC_SpectatorList     = "BR_SpectatorList";
+        private const string RPC_ExitSpectator     = "BR_ExitSpectator";
+        private const string RPC_RequestJoinPlayer = "BR_RequestJoinPlayer";
 
         private static readonly string[] StartBuffSEs =
         {
@@ -45,6 +50,8 @@ namespace BattleRoyale
         public static int      AliveCount      { get; private set; } = 0;
         public static MatchPhase Phase         { get; private set; } = MatchPhase.Lobby;
         public static string   WinnerName      { get; private set; } = "";
+        public static bool     IsSpectator     { get; private set; } = false;
+        public static readonly HashSet<string> SpectatorList = new HashSet<string>();
 
         public static bool IsOutsideZone =>
             Player.m_localPlayer != null &&
@@ -82,8 +89,13 @@ namespace BattleRoyale
             ZRoutedRpc.instance.Register<ZPackage>(RPC_TeleportTo,    RpcTeleportTo);
             ZRoutedRpc.instance.Register<ZPackage>(RPC_WipeInventory, RpcWipeInventory);
             ZRoutedRpc.instance.Register<ZPackage>(RPC_SetSkills,     RpcSetSkills);
-            ZRoutedRpc.instance.Register<ZPackage>(RPC_ApplyBuffs,    RpcApplyBuffs);
-            _log?.LogInfo("[ClientSync] RPC handlers registered: ZoneUpdate, MatchStarted, MatchEnded, PlayerKilled, SystemMessage, VoteStart, TeleportTo, WipeInventory, SetSkills, ApplyBuffs");
+            ZRoutedRpc.instance.Register<ZPackage>(RPC_ApplyBuffs,       RpcApplyBuffs);
+            ZRoutedRpc.instance.Register<ZPackage>(RPC_EnterSpectator,    RpcEnterSpectator);
+            ZRoutedRpc.instance.Register<ZPackage>(RPC_RequestSpectator,  RpcRequestSpectator);
+            ZRoutedRpc.instance.Register<ZPackage>(RPC_SpectatorList,     RpcSpectatorList);
+            ZRoutedRpc.instance.Register<ZPackage>(RPC_ExitSpectator,     RpcExitSpectator);
+            ZRoutedRpc.instance.Register<ZPackage>(RPC_RequestJoinPlayer, RpcRequestJoinPlayer);
+            _log?.LogInfo("[ClientSync] RPC handlers registered: ZoneUpdate, MatchStarted, MatchEnded, PlayerKilled, SystemMessage, VoteStart, TeleportTo, WipeInventory, SetSkills, ApplyBuffs, EnterSpectator, RequestSpectator, SpectatorList, ExitSpectator, RequestJoinPlayer");
         }
 
         // Server only: mirror BREventBus events to all clients via ZRoutedRpc
@@ -148,6 +160,8 @@ namespace BattleRoyale
             _log?.LogInfo($"[ClientSync] ForwardMatchEnded: winner={e.WinnerName}");
             Phase      = MatchPhase.Ended;
             WinnerName = e.WinnerName;
+            IsSpectator = false;
+            lock (SpectatorList) SpectatorList.Clear();
 
             var pkg = new ZPackage();
             pkg.Write(e.WinnerName);
@@ -254,6 +268,8 @@ namespace BattleRoyale
         {
             WinnerName = pkg.ReadString();
             Phase      = MatchPhase.Ended;
+            IsSpectator = false;
+            lock (SpectatorList) SpectatorList.Clear();
             _log?.LogInfo($"[ClientSync] RpcMatchEnded received: winner={WinnerName}");
         }
 
@@ -329,6 +345,7 @@ namespace BattleRoyale
         private static void RpcWipeInventory(long sender, ZPackage pkg)
         {
             _log?.LogInfo("[ClientSync] RpcWipeInventory: wiping local inventory");
+            if (IsSpectator) return;
             var localPlayer = Player.m_localPlayer;
             if (localPlayer != null)
             {
@@ -341,7 +358,8 @@ namespace BattleRoyale
         {
             int level = pkg.ReadInt();
             _log?.LogInfo($"[ClientSync] RpcSetSkills: level={level}");
-            ApplySkillsToLocalPlayer(level);
+            if (!IsSpectator)
+                ApplySkillsToLocalPlayer(level);
         }
 
         private static readonly System.Reflection.MethodInfo s_getSkillMethod =
@@ -373,7 +391,123 @@ namespace BattleRoyale
         {
             float duration = pkg.ReadSingle();
             _log?.LogInfo($"[ClientSync] RpcApplyBuffs received: duration={duration}");
-            ApplyBuffsToLocalPlayer(duration);
+            if (!IsSpectator)
+                ApplyBuffsToLocalPlayer(duration);
+        }
+
+        // Server→all: player entered spectator mode
+        public static void BroadcastEnterSpectator(string playerName)
+        {
+            if (ZRoutedRpc.instance == null) return;
+            _log?.LogInfo($"[ClientSync] BroadcastEnterSpectator: {playerName}");
+
+            // Update server's own state immediately (listen-server or solo host)
+            lock (SpectatorList) SpectatorList.Add(playerName);
+            if (Player.m_localPlayer?.GetPlayerName() == playerName)
+            {
+                IsSpectator = true;
+                InitFlyCamera();
+            }
+
+            var pkg = new ZPackage();
+            pkg.Write(playerName);
+            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, RPC_EnterSpectator, pkg);
+        }
+
+        // Client→server: request to enter spectator mode
+        public static void SendRequestSpectator(string playerName)
+        {
+            if (ZRoutedRpc.instance == null) return;
+            _log?.LogInfo($"[ClientSync] SendRequestSpectator: {playerName}");
+            var pkg = new ZPackage();
+            pkg.Write(playerName);
+            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, RPC_RequestSpectator, pkg);
+        }
+
+        // Client→server: request to leave spectator mode and become a player
+        public static void SendRequestJoinPlayer(string playerName)
+        {
+            if (ZRoutedRpc.instance == null) return;
+            _log?.LogInfo($"[ClientSync] SendRequestJoinPlayer: {playerName}");
+            var pkg = new ZPackage();
+            pkg.Write(playerName);
+            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, RPC_RequestJoinPlayer, pkg);
+        }
+
+        // Server→all: player left spectator mode
+        public static void BroadcastExitSpectator(string playerName)
+        {
+            if (ZRoutedRpc.instance == null) return;
+            _log?.LogInfo($"[ClientSync] BroadcastExitSpectator: {playerName}");
+
+            lock (SpectatorList) SpectatorList.Remove(playerName);
+            if (Player.m_localPlayer?.GetPlayerName() == playerName)
+                IsSpectator = false;
+
+            var pkg = new ZPackage();
+            pkg.Write(playerName);
+            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, RPC_ExitSpectator, pkg);
+        }
+
+        private static void InitFlyCamera()
+        {
+            var cam = GameCamera.instance;
+            if (cam == null) return;
+            // Start 10m above current camera so the switch to fly-cam is immediately obvious.
+            SpectatorManager.FlyPosition = cam.transform.position + Vector3.up * 10f;
+            SpectatorManager.FlyYaw      = cam.transform.eulerAngles.y;
+            SpectatorManager.FlyPitch    = 45f; // look down steeply
+            _log?.LogInfo($"[ClientSync] InitFlyCamera: pos={SpectatorManager.FlyPosition}");
+        }
+
+        private static void RpcEnterSpectator(long sender, ZPackage pkg)
+        {
+            string name = pkg.ReadString();
+            lock (SpectatorList) SpectatorList.Add(name);
+            _log?.LogInfo($"[ClientSync] RpcEnterSpectator: {name}");
+
+            if (Player.m_localPlayer?.GetPlayerName() == name)
+            {
+                IsSpectator = true;
+                InitFlyCamera();
+            }
+        }
+
+        private static void RpcRequestSpectator(long sender, ZPackage pkg)
+        {
+            string name = pkg.ReadString();
+            _log?.LogInfo($"[ClientSync] RpcRequestSpectator: {name}, IsServer={Main.IsServer}");
+            if (!Main.IsServer) return;
+            SpectatorManager.EnterSpectatorModeByName(name);
+        }
+
+        private static void RpcRequestJoinPlayer(long sender, ZPackage pkg)
+        {
+            string name = pkg.ReadString();
+            _log?.LogInfo($"[ClientSync] RpcRequestJoinPlayer: {name}, IsServer={Main.IsServer}");
+            if (!Main.IsServer) return;
+            SpectatorManager.ExitSpectatorModeByName(name);
+        }
+
+        private static void RpcExitSpectator(long sender, ZPackage pkg)
+        {
+            string name = pkg.ReadString();
+            lock (SpectatorList) SpectatorList.Remove(name);
+            _log?.LogInfo($"[ClientSync] RpcExitSpectator: {name}");
+            if (Player.m_localPlayer?.GetPlayerName() == name)
+                IsSpectator = false;
+        }
+
+        private static void RpcSpectatorList(long sender, ZPackage pkg)
+        {
+            int count = pkg.ReadInt();
+            lock (SpectatorList)
+            {
+                SpectatorList.Clear();
+                for (int i = 0; i < count; i++)
+                    SpectatorList.Add(pkg.ReadString());
+            }
+            _log?.LogInfo($"[ClientSync] RpcSpectatorList: {count} spectators");
         }
 
         private static void AddKillFeedEntry(string killer, string victim, int alive)

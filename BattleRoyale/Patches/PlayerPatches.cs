@@ -25,6 +25,7 @@ namespace BattleRoyale.Patches
 
             Main.Log?.LogInfo($"[PlayerPatches] Recording kill: killer='{killerName}', victim='{victimName}'");
             MatchManager.Instance.RecordKill(killerName, victimName, __instance.transform.position);
+            SpectatorManager.EnterSpectatorMode(__instance);
         }
 
         [HarmonyPostfix]
@@ -36,6 +37,11 @@ namespace BattleRoyale.Patches
 
             if (MatchManager.Instance?.State?.Phase == MatchPhase.Active)
             {
+                if (MatchManager.Instance.State.IsSpectator(__instance.GetPlayerName()))
+                {
+                    Main.Log?.LogInfo($"[PlayerPatches] Match active — skipping inventory wipe for spectator '{__instance.GetPlayerName()}'");
+                    return;
+                }
                 Main.Log?.LogInfo($"[PlayerPatches] Match active — wiping inventory for '{__instance.GetPlayerName()}'");
                 __instance.UnequipAllItems();
                 __instance.GetInventory().RemoveAll();
@@ -67,9 +73,9 @@ namespace BattleRoyale.Patches
         [HarmonyPrefix]
         public static bool Prefix(float delay, bool afterDeath)
         {
-            if (afterDeath && MatchManager.Instance?.State?.Phase == MatchPhase.Active)
+            if (afterDeath && (ClientSync.Phase == MatchPhase.Active || ClientSync.IsSpectator))
             {
-                Main.Log?.LogInfo($"[RespawnPatch] Respawn blocked — match active, player becomes spectator (delay={delay})");
+                Main.Log?.LogInfo($"[RespawnPatch] Respawn blocked — spectator mode (delay={delay})");
                 return false;
             }
             return true;
