@@ -107,6 +107,7 @@ namespace BattleRoyale
             var zoneGo = new GameObject("BR_Zone");
             DontDestroyOnLoad(zoneGo);
             zoneGo.AddComponent<ZoneRenderer>();
+            zoneGo.AddComponent<ZoneMistEffect>();
 
             Logger.LogInfo("[BattleRoyale] Client HUD initialized");
         }

@@ -33,6 +33,10 @@ namespace BattleRoyale
         private float           _phaseElapsed;
         private bool            _active;
         private float           _broadcastTimer;
+        private float           _dmgTimer;
+        private bool            _warned60;
+        private bool            _warned30;
+        private bool            _warned10;
         private ManualLogSource _log;
 
         private const float BroadcastInterval = 5f;
@@ -54,8 +58,12 @@ namespace BattleRoyale
             _shrinking      = false;
             _done           = false;
             _active         = true;
+            _warned60       = false;
+            _warned30       = false;
+            _warned10       = false;
             GenerateNextZone();
             BroadcastZone();
+            ClientSync.BroadcastSystemMessage($"Zone is active! Phase 1/{_config.PhaseRadii.Length - 1} — closes in {_config.PhaseWaitDuration:F0}s. Radius: {_currentRadius:F0}m → {_targetRadius:F0}m");
             _log.LogInfo($"[ZoneManager] Zone active - phase 1/{_config.PhaseRadii.Length}, radius: {_currentRadius}m, next: {_targetRadius}m @ {_targetCenter}");
         }
 
@@ -111,7 +119,15 @@ namespace BattleRoyale
                     _shrinkStartRadius = _currentRadius;
                     _shrinkStartCenter = _currentCenter;
                     _shrinking         = true;
+                    ClientSync.BroadcastSystemMessage($"Zone closing! Phase {_phaseIndex + 1}/{_config.PhaseRadii.Length - 1} — shrinking from {_currentRadius:F0}m to {_targetRadius:F0}m");
                     _log.LogInfo($"[ZoneManager] Phase {_phaseIndex + 1} shrinking → {_targetRadius}m @ {_targetCenter}");
+                }
+                else
+                {
+                    float timeLeft = _config.PhaseWaitDuration - _phaseElapsed;
+                    if (!_warned60 && timeLeft <= 60f) { _warned60 = true; ClientSync.BroadcastSystemMessage("Zone closes in 60 seconds!"); }
+                    if (!_warned30 && timeLeft <= 30f) { _warned30 = true; ClientSync.BroadcastSystemMessage("Zone closes in 30 seconds!"); }
+                    if (!_warned10 && timeLeft <= 10f) { _warned10 = true; ClientSync.BroadcastSystemMessage("Zone closes in 10 seconds!"); }
                 }
             }
             else
@@ -129,13 +145,18 @@ namespace BattleRoyale
                     if (_phaseIndex >= _config.PhaseRadii.Length - 1)
                     {
                         _done = true;
+                        ClientSync.BroadcastSystemMessage($"Final zone reached! Radius: {_currentRadius:F0}m — last players standing wins!");
                         _log.LogInfo($"[ZoneManager] Final zone reached: {_currentRadius}m");
                     }
                     else
                     {
                         _phaseElapsed = 0f;
                         _shrinking    = false;
+                        _warned60     = false;
+                        _warned30     = false;
+                        _warned10     = false;
                         GenerateNextZone();
+                        ClientSync.BroadcastSystemMessage($"Phase {_phaseIndex + 1} — zone stable. Closes again in {_config.PhaseWaitDuration:F0}s. Next radius: {_targetRadius:F0}m");
                         _log.LogInfo($"[ZoneManager] Phase {_phaseIndex + 1} started — radius: {_currentRadius}m, next: {_targetRadius}m @ {_targetCenter}");
                     }
                     BroadcastZone();
@@ -174,17 +195,21 @@ namespace BattleRoyale
         {
             if (ZNet.instance == null || !ZNet.instance.IsServer()) return;
 
-            float dmgRate = GetDamagePerSecond();
+            _dmgTimer += dt;
+            if (_dmgTimer < 1f) return;
+            _dmgTimer -= 1f;
+
+            float dmg = GetDamagePerSecond();
             foreach (var player in Player.GetAllPlayers())
             {
                 if (player == null) continue;
                 float dist = Vector3.Distance(player.transform.position, _currentCenter);
                 if (dist > _currentRadius)
                 {
-                    float dmg = dmgRate * dt;
                     var hit = new HitData();
                     hit.m_damage.m_blunt = dmg;
-                    hit.m_point = player.transform.position;
+                    hit.m_point          = player.transform.position;
+                    hit.m_dir            = Vector3.up;
                     player.Damage(hit);
                     _log.LogInfo($"[ZoneManager] Zone dmg: '{player.GetPlayerName()}' dist={dist:F0}m zone={_currentRadius:F1}m dmg={dmg:F2} hp={player.GetHealth():F1}");
                 }

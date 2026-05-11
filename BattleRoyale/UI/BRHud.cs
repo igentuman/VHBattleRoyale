@@ -253,7 +253,7 @@ namespace BattleRoyale.UI
         private void DrawZoneDamageOverlay()
         {
             float alpha = 0.12f + 0.08f * Mathf.Sin(Time.time * 5f);
-            GUI.color = new Color(1f, 0f, 0f, alpha);
+            GUI.color = new Color(0.73f, 0f, 0f, 0.38f);
             GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), _redTex);
             GUI.color = Color.white;
         }
