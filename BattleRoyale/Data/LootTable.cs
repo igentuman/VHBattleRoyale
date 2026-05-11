@@ -12,7 +12,7 @@ namespace BattleRoyale
 
     public static class DefaultLootTable
     {
-        // Positions are offsets from world origin — tune per map
+        // Positions are offsets from world origin - tune per map
         public static readonly List<LootSpawnPoint> SpawnPoints = new List<LootSpawnPoint>
         {
             new LootSpawnPoint { Position = new Vector3(  50,  2,   50), Weight = 1f, PossiblePrefabs = new[] { "SwordBronze", "AxeBronze" } },

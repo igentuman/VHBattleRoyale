@@ -105,7 +105,7 @@ namespace BattleRoyale
 
             float duration = (float)(DateTime.UtcNow - State.StartTime).TotalSeconds;
 
-            Broadcast($"BATTLE ROYALE ENDED — Winner: {winnerName}");
+            Broadcast($"BATTLE ROYALE ENDED - Winner: {winnerName}");
 
             BREventBus.Emit(new MatchEndedEvent
             {

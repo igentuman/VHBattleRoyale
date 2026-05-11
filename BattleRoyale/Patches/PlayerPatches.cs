@@ -17,7 +17,7 @@ namespace BattleRoyale.Patches
             string victimName = __instance.GetPlayerName();
             string killerName = "zone";
 
-            // m_lastHit is protected — access via Traverse
+            // m_lastHit is protected - access via Traverse
             var lastHit = Traverse.Create(__instance).Field<HitData>("m_lastHit").Value;
             var attacker = lastHit?.GetAttacker();
             if (attacker != null)

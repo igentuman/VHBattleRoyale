@@ -2,7 +2,7 @@ using BepInEx.Logging;
 
 namespace BattleRoyale
 {
-    // Mock implementation — logs events instead of real HTTP.
+    // Mock implementation - logs events instead of real HTTP.
     // Real HTTP implementation lives in the separate API project.
     // Set API.Enabled = true and wire HttpApiClient when ready.
     public static class ApiClient

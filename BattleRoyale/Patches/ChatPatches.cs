@@ -64,7 +64,7 @@ namespace BattleRoyale.Patches
 
             if (!Main.IsServer)
             {
-                // Dedicated server never fires Talker.RPC_Say — client sends vote via ZRoutedRpc instead
+                // Dedicated server never fires Talker.RPC_Say - client sends vote via ZRoutedRpc instead
                 Main.Log?.LogInfo($"[ChatVotePatch] Client sending VoteStart RPC for '{user.Name}'");
                 ClientSync.SendVoteStart(user.Name);
                 return;

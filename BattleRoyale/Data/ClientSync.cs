@@ -68,7 +68,7 @@ namespace BattleRoyale
         // Server only: mirror BREventBus events to all clients via ZRoutedRpc
         public static void RegisterServerForwards()
         {
-            _log?.LogInfo("[ClientSync] RegisterServerForwards called — subscribing to BREventBus events");
+            _log?.LogInfo("[ClientSync] RegisterServerForwards called - subscribing to BREventBus events");
             BREventBus.Subscribe<ZoneUpdatedEvent>(ForwardZoneUpdate);
             BREventBus.Subscribe<MatchStartedEvent>(ForwardMatchStarted);
             BREventBus.Subscribe<MatchEndedEvent>(ForwardMatchEnded);

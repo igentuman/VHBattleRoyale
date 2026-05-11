@@ -47,7 +47,7 @@ namespace BattleRoyale
                 var prefab = ZNetScene.instance.GetPrefab(prefabName);
                 if (prefab == null)
                 {
-                    _log.LogWarning($"[LootManager] Unknown prefab '{prefabName}' at {point.Position} — skipping");
+                    _log.LogWarning($"[LootManager] Unknown prefab '{prefabName}' at {point.Position} - skipping");
                     continue;
                 }
 

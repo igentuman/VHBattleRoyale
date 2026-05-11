@@ -131,7 +131,7 @@ namespace BattleRoyale.UI
             float toEdge  = ClientSync.ZoneRadius - dist;
             bool  outside = toEdge < 0f;
 
-            string line1 = $"Zone {ClientSync.ZonePhaseNumber}/6 — radius: {ClientSync.ZoneRadius:F0} m";
+            string line1 = $"Zone {ClientSync.ZonePhaseNumber}/6 - radius: {ClientSync.ZoneRadius:F0} m";
             string line2 = outside
                 ? $"OUTSIDE ({-toEdge:F0} m out)  -{ClientSync.ZoneDamage:F1} HP/s"
                 : $"To edge: {toEdge:F0} m";

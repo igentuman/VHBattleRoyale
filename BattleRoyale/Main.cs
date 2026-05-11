@@ -88,7 +88,7 @@ namespace BattleRoyale
             ApiClient.Init(_cfgApiBaseUrl.Value, _cfgApiEnabled.Value, Logger);
             ClientSync.RegisterServerForwards();
 
-            Logger.LogInfo($"[BattleRoyale] Zone config — phases: [{string.Join(",", zoneConfig.PhaseRadii)}]m, wait: {zoneConfig.PhaseWaitDuration}s, shrink: {zoneConfig.PhaseShrinkDuration}s, baseDmg: {zoneConfig.BaseDamagePerSecond}/s");
+            Logger.LogInfo($"[BattleRoyale] Zone config - phases: [{string.Join(",", zoneConfig.PhaseRadii)}]m, wait: {zoneConfig.PhaseWaitDuration}s, shrink: {zoneConfig.PhaseShrinkDuration}s, baseDmg: {zoneConfig.BaseDamagePerSecond}/s");
             Logger.LogInfo($"[BattleRoyale] Match config — loot: {_cfgLootSpawnCount.Value} items, structDmg: {_cfgStructureDamageMultiplier.Value}x, staminaCost: {_cfgStaminaCostMultiplier.Value}x, API: {(_cfgApiEnabled.Value ? _cfgApiBaseUrl.Value : "disabled")}");
             Logger.LogInfo("[BattleRoyale] All systems initialized");
         }

@@ -56,7 +56,7 @@ namespace BattleRoyale
             _active         = true;
             GenerateNextZone();
             BroadcastZone();
-            _log.LogInfo($"[ZoneManager] Zone active — phase 1/{_config.PhaseRadii.Length}, radius: {_currentRadius}m, next: {_targetRadius}m @ {_targetCenter}");
+            _log.LogInfo($"[ZoneManager] Zone active - phase 1/{_config.PhaseRadii.Length}, radius: {_currentRadius}m, next: {_targetRadius}m @ {_targetCenter}");
         }
 
         private void OnMatchEnded(MatchEndedEvent e)

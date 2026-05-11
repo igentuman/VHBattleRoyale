@@ -12,7 +12,7 @@ namespace BattleRoyale.Patches
 
             if (ZNet.instance == null)
             {
-                Main.Log?.LogWarning("[GamePatches] ZNet.instance is null — skipping init");
+                Main.Log?.LogWarning("[GamePatches] ZNet.instance is null - skipping init");
                 return;
             }
 
