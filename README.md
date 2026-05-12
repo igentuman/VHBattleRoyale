@@ -4,7 +4,7 @@
 
 ## Overview
 
-The mod transforms Valheim into a competitive Battle Royale experience with a shrinking zone, randomized starts, and enhanced looting. It is a server-side plugin with an optional client-side HUD, and supports an optional Web API tracker for match statistics.
+The mod transforms Valheim into a competitive Battle Royale experience with a shrinking zone, randomized starts, and enhanced looting. It is a server-side plugin with an mandatory client-side HUD, and supports an optional Web API tracker for match statistics.
 
 ## Key Features
 
@@ -150,7 +150,7 @@ The post-build step automatically copies the output DLL to (Linux):
 
 ## Gameplay Flow
 
-1. **Lobby**: Players join the server and vote to start via `!start` chat command.
+1. **Lobby**: Players join the server and vote to start via `!start` chat command or !spectator to join as spectator.
 2. **Start**: Players are teleported to random locations within `TeleportSpawnRadius`, inventories are cleared, and all skills are set to `StartSkillLevel`.
 3. **Buffs**: Players receive start buffs (Eikthyr, rested, corpse run, feather fall, no skill drain, sneaky) for `StartBuffDuration` seconds.
 4. **Looting**: Players search for gear in chests and structures.
