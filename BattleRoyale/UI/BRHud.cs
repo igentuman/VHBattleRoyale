@@ -92,6 +92,8 @@ namespace BattleRoyale.UI
                 DrawZoneInfo();
                 DrawKillFeed();
                 DrawZoneCirclesOnMap();
+                if (ClientSync.Phase == MatchPhase.Active)
+                    DrawTestingButtons();
                 return;
             }
 
@@ -105,6 +107,9 @@ namespace BattleRoyale.UI
 
             if (ClientSync.IsOutsideZone)
                 DrawZoneDamageOverlay();
+
+            if (ClientSync.Phase == MatchPhase.Active)
+                DrawTestingButtons();
         }
 
         private void DrawStartButton()
@@ -112,7 +117,7 @@ namespace BattleRoyale.UI
             if (InventoryGui.instance == null || !InventoryGui.IsVisible()) return;
             if (Player.m_localPlayer == null) return;
 
-            const float w = 400f, h = 88f, joinW = 194f, gap = 12f;
+            const float w = 800f, h = 88f, joinW = 494f, gap = 12f;
             float x = 10f;
             float y = Screen.height - h - 10f;
 
@@ -286,6 +291,34 @@ namespace BattleRoyale.UI
             GUI.color = new Color(0.73f, 0f, 0f, 0.38f);
             GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), _redTex);
             GUI.color = Color.white;
+        }
+
+        private void DrawTestingButtons()
+        {
+            if (Main.Instance == null || !Main.Instance.TestingMode) return;
+            if (Player.m_localPlayer == null) return;
+
+            const float w = 340f, h = 64f, gap = 8f;
+            float x = 10f;
+            float y = Screen.height - h - 10f;
+            string playerName = Player.m_localPlayer.GetPlayerName();
+
+            if (ClientSync.IsSpectator)
+            {
+                if (GUI.Button(new Rect(x, y, w, h), "[TEST] Switch to Player", _btnStyle))
+                    ClientSync.SendTestSwitchToPlayer(playerName);
+            }
+            else
+            {
+                if (GUI.Button(new Rect(x, y, w, h), "[TEST] Switch to Spectator", _btnStyle))
+                    ClientSync.SendTestSwitchToSpectator(playerName);
+            }
+
+            if (ClientSync.AliveCount < 2)
+            {
+                if (GUI.Button(new Rect(x, y - h - gap, w, h), "[TEST] Force End Match", _btnStyle))
+                    ClientSync.SendTestForceEnd();
+            }
         }
     }
 }

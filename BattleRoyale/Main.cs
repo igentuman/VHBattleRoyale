@@ -29,6 +29,8 @@ namespace BattleRoyale
         public float StaminaCostMultiplier => _cfgStaminaCostMultiplier.Value;
         public int StartSkillLevel => _cfgStartSkillLevel.Value;
         public float StartBuffDuration => _cfgStartBuffDuration.Value;
+        public bool TestingMode => _cfgTestingMode.Value;
+        public float TeleportSpawnRadius => _cfgTeleportSpawnRadius.Value;
 
         private ConfigEntry<float> _cfgZonePhaseWaitDuration;
         private ConfigEntry<float> _cfgZonePhaseShrinkDuration;
@@ -40,6 +42,11 @@ namespace BattleRoyale
         private ConfigEntry<bool> _cfgApiEnabled;
         private ConfigEntry<int> _cfgStartSkillLevel;
         private ConfigEntry<float> _cfgStartBuffDuration;
+        private ConfigEntry<bool> _cfgTestingMode;
+        private ConfigEntry<bool> _cfgRenderZoneCircles;
+        private ConfigEntry<float> _cfgTeleportSpawnRadius;
+
+        public bool RenderZoneCircles => _cfgRenderZoneCircles.Value;
 
         private Harmony _harmony;
         private bool _initialized;
@@ -99,6 +106,9 @@ namespace BattleRoyale
             _cfgApiEnabled                = Config.Bind("API",       "Enabled",                false,                   "Enable API event forwarding (requires backend project)");
             _cfgStartSkillLevel           = Config.Bind("Match",     "StartSkillLevel",           20,                   "Skill level set for all players when match starts (0 = disabled)");
             _cfgStartBuffDuration         = Config.Bind("Match",     "StartBuffDuration",        300f,                   "Seconds all start buffs last (Eikthyr, rested, corpse run, feather fall, no skill drain, sneaky). 0 = disabled");
+            _cfgTestingMode               = Config.Bind("Testing",   "TestingMode",             false,                   "Show in-match buttons to switch between spectator/player and force-end match");
+            _cfgRenderZoneCircles         = Config.Bind("UI",        "RenderZoneCircles",        true,                    "Render zone boundary circles on the ground");
+            _cfgTeleportSpawnRadius       = Config.Bind("Match",     "TeleportSpawnRadius",      4000f,                   "Radius from world center to teleport players on match start (±500 variation). Set to 0 to disable teleportation");
         }
 
         public void OnServerReady()

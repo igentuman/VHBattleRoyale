@@ -36,7 +36,8 @@ namespace BattleRoyale.UI
 
         private void Update()
         {
-            bool active = ClientSync.Phase != MatchPhase.Lobby;
+            bool renderEnabled = Main.Instance != null && Main.Instance.RenderZoneCircles;
+            bool active = renderEnabled && ClientSync.Phase != MatchPhase.Lobby;
             _currentRing.enabled = active;
 
             bool showNext = active

@@ -210,11 +210,18 @@ namespace BattleRoyale
 
         private void TeleportPlayersToStart()
         {
+            float spawnRadius = Main.Instance?.TeleportSpawnRadius ?? 0f;
+            if (spawnRadius <= 0f)
+            {
+                _log.LogInfo("[MatchManager] TeleportSpawnRadius=0, teleportation disabled");
+                return;
+            }
+
             // Teleport local Player objects (listen server / solo host)
             foreach (var player in Player.GetAllPlayers())
             {
                 if (State.IsSpectator(player.GetPlayerName())) continue;
-                Vector3 pos = FindMeadowsSpawn();
+                Vector3 pos = FindMeadowsSpawn(spawnRadius);
                 player.TeleportTo(pos, player.transform.rotation, true);
                 _log.LogInfo($"[MatchManager] Teleported (local) {player.GetPlayerName()} to {pos}");
             }
@@ -223,17 +230,17 @@ namespace BattleRoyale
             {
                 foreach (var name in State.AlivePlayers)
                 {
-                    Vector3 pos = FindMeadowsSpawn();
+                    Vector3 pos = FindMeadowsSpawn(spawnRadius);
                     ClientSync.SendTeleport(name, pos);
                     _log.LogInfo($"[MatchManager] Sent teleport RPC for {name} to {pos}");
                 }
             }
         }
 
-        private static Vector3 FindMeadowsSpawn()
+        private static Vector3 FindMeadowsSpawn(float spawnRadius)
         {
-            const float minRadius = 3500f;
-            const float maxRadius = 4500f;
+            float minRadius = Mathf.Max(1f, spawnRadius - 500f);
+            float maxRadius = spawnRadius + 500f;
             const int   maxAttempts = 100;
 
             var wg = WorldGenerator.instance;

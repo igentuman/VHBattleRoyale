@@ -11,6 +11,11 @@ namespace BattleRoyale.Patches
         public static void OnDeath_Postfix(Player __instance)
         {
             Main.Log?.LogInfo($"[PlayerPatches] OnDeath: player='{__instance.GetPlayerName()}', pos={__instance.transform.position}, hp={__instance.GetHealth():F1}, IsServer={Main.IsServer}, Phase={MatchManager.Instance?.State?.Phase}");
+
+            // Client-side: immediately reflect the death in the HUD before async RPC arrives.
+            if (__instance == Player.m_localPlayer && ClientSync.Phase == MatchPhase.Active)
+                ClientSync.OnLocalPlayerDied();
+
             if (!Main.IsServer) return;
             if (MatchManager.Instance?.State?.Phase != MatchPhase.Active) return;
 
@@ -25,7 +30,13 @@ namespace BattleRoyale.Patches
 
             Main.Log?.LogInfo($"[PlayerPatches] Recording kill: killer='{killerName}', victim='{victimName}'");
             MatchManager.Instance.RecordKill(killerName, victimName, __instance.transform.position);
-            SpectatorManager.EnterSpectatorMode(__instance);
+
+            int aliveRemaining = MatchManager.Instance.State.AlivePlayers.Count;
+
+            // Don't enter spectator when no alive players remain — match is ending anyway,
+            // and entering then immediately exiting spectator blocks RequestRespawn causing black screen.
+            if (aliveRemaining > 0)
+                SpectatorManager.EnterSpectatorMode(__instance);
         }
 
         [HarmonyPostfix]

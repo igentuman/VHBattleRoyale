@@ -20,7 +20,10 @@ namespace BattleRoyale
         private const string RPC_RequestSpectator  = "BR_RequestSpectator";
         private const string RPC_SpectatorList     = "BR_SpectatorList";
         private const string RPC_ExitSpectator     = "BR_ExitSpectator";
-        private const string RPC_RequestJoinPlayer = "BR_RequestJoinPlayer";
+        private const string RPC_RequestJoinPlayer       = "BR_RequestJoinPlayer";
+        private const string RPC_TestSwitchToSpectator  = "BR_TestSwitchToSpectator";
+        private const string RPC_TestSwitchToPlayer     = "BR_TestSwitchToPlayer";
+        private const string RPC_TestForceEnd           = "BR_TestForceEnd";
 
         private static readonly string[] StartBuffSEs =
         {
@@ -52,6 +55,13 @@ namespace BattleRoyale
         public static string   WinnerName      { get; private set; } = "";
         public static bool     IsSpectator     { get; private set; } = false;
         public static readonly HashSet<string> SpectatorList = new HashSet<string>();
+
+        // Call from client side when local player dies to give immediate HUD feedback
+        // before the async RpcPlayerKilled arrives from the server.
+        public static void OnLocalPlayerDied()
+        {
+            if (AliveCount > 0) AliveCount--;
+        }
 
         public static bool IsOutsideZone =>
             Player.m_localPlayer != null &&
@@ -94,8 +104,11 @@ namespace BattleRoyale
             ZRoutedRpc.instance.Register<ZPackage>(RPC_RequestSpectator,  RpcRequestSpectator);
             ZRoutedRpc.instance.Register<ZPackage>(RPC_SpectatorList,     RpcSpectatorList);
             ZRoutedRpc.instance.Register<ZPackage>(RPC_ExitSpectator,     RpcExitSpectator);
-            ZRoutedRpc.instance.Register<ZPackage>(RPC_RequestJoinPlayer, RpcRequestJoinPlayer);
-            _log?.LogInfo("[ClientSync] RPC handlers registered: ZoneUpdate, MatchStarted, MatchEnded, PlayerKilled, SystemMessage, VoteStart, TeleportTo, WipeInventory, SetSkills, ApplyBuffs, EnterSpectator, RequestSpectator, SpectatorList, ExitSpectator, RequestJoinPlayer");
+            ZRoutedRpc.instance.Register<ZPackage>(RPC_RequestJoinPlayer,      RpcRequestJoinPlayer);
+            ZRoutedRpc.instance.Register<ZPackage>(RPC_TestSwitchToSpectator, RpcTestSwitchToSpectator);
+            ZRoutedRpc.instance.Register<ZPackage>(RPC_TestSwitchToPlayer,    RpcTestSwitchToPlayer);
+            ZRoutedRpc.instance.Register<ZPackage>(RPC_TestForceEnd,          RpcTestForceEnd);
+            _log?.LogInfo("[ClientSync] RPC handlers registered: ZoneUpdate, MatchStarted, MatchEnded, PlayerKilled, SystemMessage, VoteStart, TeleportTo, WipeInventory, SetSkills, ApplyBuffs, EnterSpectator, RequestSpectator, SpectatorList, ExitSpectator, RequestJoinPlayer, TestSwitchToSpectator, TestSwitchToPlayer, TestForceEnd");
         }
 
         // Server only: mirror BREventBus events to all clients via ZRoutedRpc
@@ -162,6 +175,14 @@ namespace BattleRoyale
             WinnerName = e.WinnerName;
             IsSpectator = false;
             lock (SpectatorList) SpectatorList.Clear();
+
+            // If local player died while respawn was blocked (Phase==Active), trigger it now.
+            var localPlayer = Player.m_localPlayer;
+            if (localPlayer != null && localPlayer.IsDead())
+            {
+                _log?.LogInfo("[ClientSync] ForwardMatchEnded: local player dead, triggering respawn");
+                Game.instance?.RequestRespawn(0f, true);
+            }
 
             var pkg = new ZPackage();
             pkg.Write(e.WinnerName);
@@ -271,6 +292,14 @@ namespace BattleRoyale
             IsSpectator = false;
             lock (SpectatorList) SpectatorList.Clear();
             _log?.LogInfo($"[ClientSync] RpcMatchEnded received: winner={WinnerName}");
+
+            // If local player died while respawn was blocked (Phase==Active), trigger it now.
+            var localPlayer = Player.m_localPlayer;
+            if (localPlayer != null && localPlayer.IsDead())
+            {
+                _log?.LogInfo("[ClientSync] RpcMatchEnded: local player dead, triggering respawn");
+                Game.instance?.RequestRespawn(0f, true);
+            }
         }
 
         private static void RpcPlayerKilled(long sender, ZPackage pkg)
@@ -324,6 +353,7 @@ namespace BattleRoyale
             string msg = pkg.ReadString();
             _log?.LogInfo($"[ClientSync] RpcSystemMessage received: '{msg}'");
             Chat.instance?.AddString("BattleRoyale", msg, Talker.Type.Shout);
+            Chat.instance.m_wasFocused = true;
         }
 
         // ── Helpers ──────────────────────────────────────────────────────────
@@ -496,6 +526,67 @@ namespace BattleRoyale
             _log?.LogInfo($"[ClientSync] RpcExitSpectator: {name}");
             if (Player.m_localPlayer?.GetPlayerName() == name)
                 IsSpectator = false;
+        }
+
+        // Testing mode: switch active player → spectator (removes from AlivePlayers)
+        public static void SendTestSwitchToSpectator(string playerName)
+        {
+            if (ZRoutedRpc.instance == null) return;
+            _log?.LogInfo($"[ClientSync] SendTestSwitchToSpectator: {playerName}");
+            var pkg = new ZPackage();
+            pkg.Write(playerName);
+            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, RPC_TestSwitchToSpectator, pkg);
+        }
+
+        private static void RpcTestSwitchToSpectator(long sender, ZPackage pkg)
+        {
+            string name = pkg.ReadString();
+            _log?.LogInfo($"[ClientSync] RpcTestSwitchToSpectator: {name}, IsServer={Main.IsServer}");
+            if (!Main.IsServer) return;
+            var state = MatchManager.Instance?.State;
+            if (state != null && state.Phase == MatchPhase.Active)
+                lock (state.AlivePlayers) state.AlivePlayers.Remove(name);
+            SpectatorManager.EnterSpectatorModeByName(name);
+        }
+
+        // Testing mode: switch spectator → active player (adds to AlivePlayers)
+        public static void SendTestSwitchToPlayer(string playerName)
+        {
+            if (ZRoutedRpc.instance == null) return;
+            _log?.LogInfo($"[ClientSync] SendTestSwitchToPlayer: {playerName}");
+            var pkg = new ZPackage();
+            pkg.Write(playerName);
+            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, RPC_TestSwitchToPlayer, pkg);
+        }
+
+        private static void RpcTestSwitchToPlayer(long sender, ZPackage pkg)
+        {
+            string name = pkg.ReadString();
+            _log?.LogInfo($"[ClientSync] RpcTestSwitchToPlayer: {name}, IsServer={Main.IsServer}");
+            if (!Main.IsServer) return;
+            var state = MatchManager.Instance?.State;
+            if (state != null && state.Phase == MatchPhase.Active)
+            {
+                lock (state.AlivePlayers)
+                    if (!state.AlivePlayers.Contains(name))
+                        state.AlivePlayers.Add(name);
+            }
+            SpectatorManager.ExitSpectatorModeByName(name);
+        }
+
+        // Testing mode: force-end the match
+        public static void SendTestForceEnd()
+        {
+            if (ZRoutedRpc.instance == null) return;
+            _log?.LogInfo("[ClientSync] SendTestForceEnd");
+            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, RPC_TestForceEnd, new ZPackage());
+        }
+
+        private static void RpcTestForceEnd(long sender, ZPackage pkg)
+        {
+            _log?.LogInfo($"[ClientSync] RpcTestForceEnd, IsServer={Main.IsServer}");
+            if (!Main.IsServer) return;
+            MatchManager.Instance?.End("nobody");
         }
 
         private static void RpcSpectatorList(long sender, ZPackage pkg)
