@@ -4,71 +4,136 @@
 
 ## Overview
 
-The mod transforms Valheim into a competitive Battle Royale experience with a shrinking zone, randomized starts, and enhanced looting. It consists of a server-side mod, an optional client-side mod for UI enhancements, and a planned Web API tracker for global statistics and server discovery.
+The mod transforms Valheim into a competitive Battle Royale experience with a shrinking zone, randomized starts, and enhanced looting. It is a server-side plugin with an optional client-side HUD, and supports an optional Web API tracker for match statistics.
 
 ## Key Features
 
-- **Server Authority**: Critical game logic (damage, zone, loot) is decided by the server.
-- **Dynamic Zone**: 6 stages of zone shrinkage, with increasing damage outside the circle.
+- **Server Authority**: All critical game logic (damage, zone, loot) is decided by the server.
+- **Dynamic Zone**: 6 configurable shrink phases with increasing damage outside the circle.
 - **Match Lifecycle**: Randomized player spawns, inventory clearing, and skill normalization at start.
-- **Enhanced Looting**: Focus on exploration and looting over traditional base building.
+- **Spectator Mode**: Players who die become spectators and can observe the match.
+- **Enhanced Looting**: JSON-configurable loot tables for chests and mobs.
 - **Boss Events**: Players may encounter bosses during specific match stages for extra rewards.
-- **Event-Driven Architecture**: Modular system design using interfaces and events.
+- **Event-Driven Architecture**: Modular system design using interfaces and a shared event bus.
+- **API Integration**: Optional match event forwarding to a Web API backend.
 
 ## Technical Details
 
 ### Plugin Identity
+
 - **GUID**: `com.igentuman.battleroyale`
 - **Name**: `Battle Royale`
 - **Version**: `1.0.0`
 - **Namespace**: `BattleRoyale`
 
 ### Technology Stack
+
 - **Target Framework**: `.NET Standard 2.1`
 - **Modding Framework**: [BepInEx 5.x](https://github.com/BepInEx/BepInEx)
 - **Hooking Library**: [HarmonyLib](https://github.com/pardeike/HarmonyTranspiler)
-- **Engine**: Unity 2022.3 (Valheim version)
+- **Engine**: Unity 2022.3 (Valheim)
 
 ### Architecture
-- **Singleton Pattern**: Core managers and the main plugin entry point use `Instance` properties for global access.
-- **Interface-Based Systems**: (Planned) All core systems (`IZoneSystem`, `ILootGenerator`, etc.) are designed to be swappable.
-- **Event-Driven**: Systems communicate via events (`PlayerKilled`, `ZoneUpdated`) to maintain low coupling.
-- **Client/Server Synchronization**: `ClientSync` handles RPC-like event forwarding between the server and connected clients.
-- **API Integration**: `ApiClient` for optional match data reporting to a Web API.
+
+- **Singleton Pattern**: Core managers use `static Instance` properties for global access.
+- **Interface-Based Systems**: All core systems implement interfaces (`IMatchSystem`, `IZoneSystem`, `ILootGenerator`) to allow implementation swaps.
+- **Event-Driven**: Systems emit events via `BREventBus` (`PlayerKilled`, `ZoneUpdated`, `LootSpawned`, `MatchStarted`, `MatchEnded`) - no direct coupling between managers.
+- **Client/Server Synchronization**: `ClientSync` handles RPC-like event forwarding from server to connected clients.
 
 ### Core Components
-- **Main Plugin**: Handles BepInEx lifecycle, configuration binding, and Harmony patching.
-- **Managers**:
-  - `MatchManager`: Controls match state machine and player lifecycle.
-  - `ZoneManager`: Manages the shrinking play area and damage logic.
-  - `LootManager`: Handles randomized loot spawning across the map.
-- **UI & Rendering**:
-  - `BRHud`: Custom HUD component for kill feeds and match status.
-  - `ZoneRenderer`: Visualizes the zone boundaries and mini-map indicators.
-- **Patches**: HarmonyLib prefix/postfix/transpiler hooks in `BattleRoyale.Patches`.
+
+- **[./BattleRoyale/Main.cs](./BattleRoyale/Main.cs)**: BepInEx plugin entry point - lifecycle, config binding, Harmony patching, system initialization.
+- **Managers** ([./BattleRoyale/Managers/](./BattleRoyale/Managers/)):
+  - `MatchManager` - match state machine, player lifecycle, kill tracking (`IMatchSystem`)
+  - `ZoneManager` - shrinking play area, per-tick damage logic
+  - `LootManager` - randomized loot spawning from JSON loot tables
+  - `SpectatorManager` - tracks dead players and manages spectator state
+- **UI** ([./BattleRoyale/UI/](./BattleRoyale/UI/)):
+  - `BRHud` - kill feed, match status, player count overlay
+  - `ZoneRenderer` - zone boundary circles on the minimap
+  - `ZoneMistEffect` - visual mist effect at zone boundary
+  - `SpectatorHud` - HUD overlay for spectating players
+- **Patches** ([./BattleRoyale/Patches/](./BattleRoyale/Patches/)):
+  - `ChatPatches` - `!start` / `!end` chat commands
+  - `GamePatches` - server/client ready hooks
+  - `PlayerPatches` - kill detection and player damage hooks
+  - `SpectatorPatches` - spectator mode hooks
+  - `StructurePatches` - structure damage and stamina cost multipliers
+- **Data** ([./BattleRoyale/Data/](./BattleRoyale/Data/)):
+  - `BREventBus` - typed publish/subscribe event bus
+  - `Events` - event structs (`MatchStartedEvent`, `PlayerKilledEvent`, `ZoneUpdatedEvent`, `LootSpawnedEvent`, `MatchEndedEvent`)
+  - `ClientSync` - server→client RPC synchronization
+  - `ApiClient` - optional HTTP event reporting to backend
+  - `LootTable` - JSON-deserializable loot table model
+  - `MatchState` / `ZoneConfig` - shared data models
 
 ### Configuration
-The mod exposes extensive configuration options via BepInEx:
-- **Zone**: Phase radii, wait/shrink durations, and base damage.
-- **Loot**: Spawn counts and item distribution settings.
-- **Structure**: Damage multipliers and stamina costs for building during matches.
-- **Match**: Starting skill levels and teleportation logic.
-- **API**: Backend URL and event forwarding toggles.
+
+All options are exposed via BepInEx config and hot-reloadable:
+
+| Section | Key | Default | Description |
+|---|---|---|---|
+| Zone | PhaseWaitDuration | 480s | Time to show next zone before shrinking |
+| Zone | PhaseShrinkDuration | 360s | Time to complete each shrink |
+| Zone | DamagePerSecond | 1 | Base damage/s outside zone (doubles each phase) |
+| Zone | PhaseRadii | `5500,4000,2000,1000,200,1` | Zone radii per phase (meters) |
+| Loot | SpawnCount | 50 | Loot items to spawn per match |
+| Structure | DamageMultiplier | 2× | Structure damage multiplier during match |
+| Structure | StaminaCostMultiplier | 2× | Build stamina cost multiplier during match |
+| Match | StartSkillLevel | 20 | Skill level for all players at match start |
+| Match | StartBuffDuration | 300s | Duration of start buffs (Eikthyr, rested, etc.) |
+| Match | TeleportSpawnRadius | 4000m | Radius from world center for random spawns |
+| UI | RenderZoneCircles | true | Render zone boundary on the minimap |
+| API | BaseUrl | `http://localhost:3000` | Backend API base URL |
+| API | Enabled | false | Enable API event forwarding |
+| Testing | TestingMode | false | Show debug buttons for spectator/match controls |
+
+### Loot Tables
+
+Default loot tables are extracted to `BepInEx/config/BattleRoyale/` on first run:
+- `chest_loot_tables.json` - items spawned in chests
+- `mob_loot_tables.json` - items dropped by mobs
 
 ## Project Structure
 
-- **[./Main.cs](./Main.cs)**: Plugin entry point and configuration.
-- **[./Managers/](./Managers/)**: Core game systems (Match, Zone, Loot managers).
-- **[./Patches/](./Patches/)**: HarmonyLib patches for game hooks.
-- **[./UI/](./UI/)**: In-game HUD elements like kill feeds and zone indicators.
-- **[./Data/](./Data/)**: Data models and configuration types.
+```
+BattleRoyale/
+├── Main.cs              # Plugin entry point
+├── Managers/
+│   ├── MatchManager.cs
+│   ├── ZoneManager.cs
+│   ├── LootManager.cs
+│   └── SpectatorManager.cs
+├── Patches/
+│   ├── ChatPatches.cs
+│   ├── GamePatches.cs
+│   ├── PlayerPatches.cs
+│   ├── SpectatorPatches.cs
+│   └── StructurePatches.cs
+├── UI/
+│   ├── BRHud.cs
+│   ├── ZoneRenderer.cs
+│   ├── ZoneMistEffect.cs
+│   └── SpectatorHud.cs
+├── Data/
+│   ├── BREventBus.cs
+│   ├── Events.cs
+│   ├── ClientSync.cs
+│   ├── ApiClient.cs
+│   ├── LootTable.cs
+│   ├── MatchState.cs
+│   └── ZoneConfig.cs
+└── config/
+    ├── chest_loot_tables.json
+    └── mob_loot_tables.json
+```
 
 ## Development
 
 ### Prerequisites
 
-- Valheim installed at `~/.local/share/Steam/steamapps/common/Valheim/`.
-- .NET SDK targeting `netstandard2.1`.
+- Valheim installed at `~/.local/share/Steam/steamapps/common/Valheim/`
+- .NET SDK targeting `netstandard2.1`
 
 ### Build Commands
 
@@ -80,17 +145,19 @@ dotnet build BattleRoyale.sln
 dotnet build BattleRoyale.sln -c Release
 ```
 
-The post-build step automatically copies the output DLL to:
+The post-build step automatically copies the output DLL to (Linux):
 `~/.local/share/Steam/steamapps/common/Valheim/BepInEx/plugins/`
 
 ## Gameplay Flow
 
-1. **Wait Phase**: Players join the server and vote to start via `!start` or UI button.
-2. **Start**: Players are teleported to random locations (Meadows/Black Forest), inventories are cleared, and skills are set to 20.
-3. **Looting**: Players search for gear in chests and structures.
-4. **Shrink**: The zone progressively narrows down to a final 1-meter circle.
-5. **End**: The last player standing wins, and match statistics are reported to the tracker.
+1. **Lobby**: Players join the server and vote to start via `!start` chat command.
+2. **Start**: Players are teleported to random locations within `TeleportSpawnRadius`, inventories are cleared, and all skills are set to `StartSkillLevel`.
+3. **Buffs**: Players receive start buffs (Eikthyr, rested, corpse run, feather fall, no skill drain, sneaky) for `StartBuffDuration` seconds.
+4. **Looting**: Players search for gear in chests and structures.
+5. **Zone Shrink**: The zone progressively narrows across 6 phases down to a 1-meter final circle. Damage outside the zone doubles each phase.
+6. **Elimination**: Dead players enter spectator mode and can watch the remaining match.
+7. **End**: The last player standing wins. Match statistics are optionally reported to the API tracker.
 
 ## License
 
-This project is currently in early development.
+See [LICENSE.txt](./LICENSE.txt).

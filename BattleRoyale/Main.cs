@@ -45,6 +45,7 @@ namespace BattleRoyale
         private ConfigEntry<bool> _cfgTestingMode;
         private ConfigEntry<bool> _cfgRenderZoneCircles;
         private ConfigEntry<float> _cfgTeleportSpawnRadius;
+        private ConfigEntry<string> _cfgPhaseRadii;
 
         public bool RenderZoneCircles => _cfgRenderZoneCircles.Value;
 
@@ -96,8 +97,8 @@ namespace BattleRoyale
 
         private void InitConfig()
         {
-            _cfgZonePhaseWaitDuration     = Config.Bind("Zone",      "PhaseWaitDuration",       240f,                   "Seconds to show next zone before it starts shrinking");
-            _cfgZonePhaseShrinkDuration   = Config.Bind("Zone",      "PhaseShrinkDuration",      120f,                   "Seconds to complete each zone shrink");
+            _cfgZonePhaseWaitDuration     = Config.Bind("Zone",      "PhaseWaitDuration",       480f,                   "Seconds to show next zone before it starts shrinking");
+            _cfgZonePhaseShrinkDuration   = Config.Bind("Zone",      "PhaseShrinkDuration",      360f,                   "Seconds to complete each zone shrink");
             _cfgZoneDamagePerSecond       = Config.Bind("Zone",      "DamagePerSecond",           1f,                   "Base damage per second outside zone (doubles each phase)");
             _cfgLootSpawnCount            = Config.Bind("Loot",      "SpawnCount",               50,                    "Number of loot items to spawn per match");
             _cfgStructureDamageMultiplier = Config.Bind("Structure", "DamageMultiplier",          2f,                   "Structure damage multiplier during BR match");
@@ -107,8 +108,22 @@ namespace BattleRoyale
             _cfgStartSkillLevel           = Config.Bind("Match",     "StartSkillLevel",           20,                   "Skill level set for all players when match starts (0 = disabled)");
             _cfgStartBuffDuration         = Config.Bind("Match",     "StartBuffDuration",        300f,                   "Seconds all start buffs last (Eikthyr, rested, corpse run, feather fall, no skill drain, sneaky). 0 = disabled");
             _cfgTestingMode               = Config.Bind("Testing",   "TestingMode",             false,                   "Show in-match buttons to switch between spectator/player and force-end match");
-            _cfgRenderZoneCircles         = Config.Bind("UI",        "RenderZoneCircles",        true,                    "Render zone boundary circles on the ground");
+            _cfgRenderZoneCircles         = Config.Bind("UI",        "RenderZoneCircles",        true,                    "Render zone boundary circles on the map");
             _cfgTeleportSpawnRadius       = Config.Bind("Match",     "TeleportSpawnRadius",      4000f,                   "Radius from world center to teleport players on match start (±500 variation). Set to 0 to disable teleportation");
+            _cfgPhaseRadii                = Config.Bind("Zone",      "PhaseRadii",   "5500,4000,2000,1000,200,1",           "Comma-separated zone radii (meters) for each phase, outermost first");
+        }
+
+        private static float[] ParsePhaseRadii(string value)
+        {
+            var parts = value.Split(',');
+            var result = new System.Collections.Generic.List<float>();
+            foreach (var part in parts)
+            {
+                if (float.TryParse(part.Trim(), System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out var f))
+                    result.Add(f);
+            }
+            return result.Count > 0 ? result.ToArray() : new float[] { 5500f, 4000f, 2000f, 1000f, 200f, 1f };
         }
 
         public void OnServerReady()
@@ -118,7 +133,7 @@ namespace BattleRoyale
 
             var zoneConfig = new ZoneConfig
             {
-                PhaseRadii          = new float[] { 5500f, 4000f, 2000f, 1000f, 200f, 1f },
+                PhaseRadii          = ParsePhaseRadii(_cfgPhaseRadii.Value),
                 PhaseWaitDuration   = _cfgZonePhaseWaitDuration.Value,
                 PhaseShrinkDuration = _cfgZonePhaseShrinkDuration.Value,
                 BaseDamagePerSecond = _cfgZoneDamagePerSecond.Value,
