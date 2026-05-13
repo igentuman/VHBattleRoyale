@@ -3,6 +3,15 @@ using UnityEngine;
 
 namespace BattleRoyale
 {
+    public class MobDropEntry
+    {
+        public string m_itemName;
+        public float  m_dropPercent;
+        public int    m_dropAmountMin;
+        public int    m_dropAmountMax;
+    }
+
+
     public class LootSpawnPoint
     {
         public Vector3 Position;

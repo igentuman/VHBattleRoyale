@@ -45,6 +45,9 @@
   "$enemy_abomination": [
     { "m_itemName": "FishingBaitSwamp", "m_dropPercent": 25.0, "m_dropAmountMin": 1, "m_dropAmountMax": 5, "m_dropOnlyOne": false }
   ],
+  "$enemy_boar": [
+    { "m_itemName": "LeatherScraps", "m_dropPercent": 60.0, "m_dropAmountMin": 1, "m_dropAmountMax": 2 }
+  ],
   "$enemy_drake": [
     { "m_itemName": "DragonTear",            "m_dropPercent": 100.0, "m_dropAmountMin": 1, "m_dropAmountMax":  2, "m_dropOnlyOne": false }
   ],

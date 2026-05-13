@@ -3,6 +3,7 @@ using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using BattleRoyale.Managers;
 using BattleRoyale.Patches;
 using BattleRoyale.UI;
 using HarmonyLib;
@@ -46,8 +47,10 @@ namespace BattleRoyale
         private ConfigEntry<bool> _cfgRenderZoneCircles;
         private ConfigEntry<float> _cfgTeleportSpawnRadius;
         private ConfigEntry<string> _cfgPhaseRadii;
+        private ConfigEntry<string> _cfgMobLootMode;
 
         public bool RenderZoneCircles => _cfgRenderZoneCircles.Value;
+        public string MobLootMode => _cfgMobLootMode.Value;
 
         private Harmony _harmony;
         private bool _initialized;
@@ -87,6 +90,7 @@ namespace BattleRoyale
             Log = Logger;
 
             ExtractDefaultConfigs();
+            MobLootLoader.Load(Paths.ConfigPath, Logger);
             InitConfig();
             ChatCommands.Register();
             _harmony = new Harmony(PluginGuid);
@@ -111,6 +115,7 @@ namespace BattleRoyale
             _cfgRenderZoneCircles         = Config.Bind("UI",        "RenderZoneCircles",        true,                    "Render zone boundary circles on the map");
             _cfgTeleportSpawnRadius       = Config.Bind("Match",     "TeleportSpawnRadius",      4000f,                   "Radius from world center to teleport players on match start (±500 variation). Set to 0 to disable teleportation");
             _cfgPhaseRadii                = Config.Bind("Zone",      "PhaseRadii",   "5500,4000,2000,1000,200,1",           "Comma-separated zone radii (meters) for each phase, outermost first");
+            _cfgMobLootMode               = Config.Bind("Loot",      "MobLootTableMode",                      "replace",   "How JSON mob loot tables are applied: replace (JSON replaces vanilla), augment (JSON adds to vanilla), disabled");
         }
 
         private static float[] ParsePhaseRadii(string value)

@@ -11,6 +11,7 @@
         <DebugType>portable</DebugType>
         <DebugSymbols>true</DebugSymbols>
         <Optimize>false</Optimize>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
 
     <ItemGroup>
@@ -88,10 +89,16 @@
       <None Remove="valheim_sources\**" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.5-beta1" />
+    </ItemGroup>
+
 <Target Name="PostBuild" AfterTargets="PostBuildEvent">
   <Copy SourceFiles="$(TargetPath)" DestinationFolder="..\..\..\.local\share\Steam\steamapps\common\Valheim\BepInEx\plugins\" />
   <Copy SourceFiles="$(TargetDir)$(AssemblyName).pdb" DestinationFolder="..\..\..\.local\share\Steam\steamapps\common\Valheim\BepInEx\plugins\" Condition="Exists('$(TargetDir)$(AssemblyName).pdb')" />
+  <Copy SourceFiles="$(TargetDir)Newtonsoft.Json.dll" DestinationFolder="..\..\..\.local\share\Steam\steamapps\common\Valheim\BepInEx\plugins\" Condition="Exists('$(TargetDir)Newtonsoft.Json.dll')" />
   <Copy SourceFiles="$(TargetPath)" DestinationFolder="..\..\..\.local\share\Steam\steamapps\common\Valheim dedicated server\BepInEx\plugins\" />
   <Copy SourceFiles="$(TargetDir)$(AssemblyName).pdb" DestinationFolder="..\..\..\.local\share\Steam\steamapps\common\Valheim dedicated server\BepInEx\plugins\" Condition="Exists('$(TargetDir)$(AssemblyName).pdb')" />
+  <Copy SourceFiles="$(TargetDir)Newtonsoft.Json.dll" DestinationFolder="..\..\..\.local\share\Steam\steamapps\common\Valheim dedicated server\BepInEx\plugins\" Condition="Exists('$(TargetDir)Newtonsoft.Json.dll')" />
 </Target>
 </Project>
